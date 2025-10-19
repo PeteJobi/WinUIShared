@@ -14,6 +14,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Xml.Linq;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using WinUIShared.Enums;
@@ -46,33 +47,23 @@ namespace WinUIShared.Controls
             set => SetField(ref paused, value);
         }
 
-        public static readonly DependencyProperty DualProgressProperty = DependencyProperty.Register(
-            nameof(DualProgress),
+        public static readonly DependencyProperty OnlyPrimaryProperty = DependencyProperty.Register(
+            nameof(OnlyPrimary),
             typeof(bool),
             typeof(ProcessProgress),
-            new PropertyMetadata(false, OnDualProgressChanged));
+            new PropertyMetadata(false));
 
-        private static void OnDualProgressChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        public bool OnlyPrimary
         {
-            
-        }
-
-        public bool DualProgress
-        {
-            get => (bool)GetValue(DualProgressProperty);
-            set => SetValue(DualProgressProperty, value);
+            get => (bool)GetValue(OnlyPrimaryProperty);
+            set => SetValue(OnlyPrimaryProperty, value);
         }
 
         public static readonly DependencyProperty LeftTextPrimaryProperty = DependencyProperty.Register(
             nameof(LeftTextPrimary),
             typeof(string),
             typeof(ProcessProgress),
-            new PropertyMetadata(string.Empty, OnLeftTextPrimaryChanged));
-
-        private static void OnLeftTextPrimaryChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            
-        }
+            new PropertyMetadata(string.Empty));
 
         public string LeftTextPrimary
         {
@@ -84,12 +75,7 @@ namespace WinUIShared.Controls
             nameof(CenterTextPrimary),
             typeof(string),
             typeof(ProcessProgress),
-            new PropertyMetadata(string.Empty, OnCenterTextPrimaryChanged));
-
-        private static void OnCenterTextPrimaryChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            
-        }
+            new PropertyMetadata(string.Empty));
 
         public string CenterTextPrimary
         {
@@ -101,12 +87,7 @@ namespace WinUIShared.Controls
             nameof(RightTextPrimary),
             typeof(string),
             typeof(ProcessProgress),
-            new PropertyMetadata(string.Empty, OnRightTextPrimaryChanged));
-
-        private static void OnRightTextPrimaryChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            
-        }
+            new PropertyMetadata(string.Empty));
 
         public string RightTextPrimary
         {
@@ -118,12 +99,7 @@ namespace WinUIShared.Controls
             nameof(ProgressPrimary),
             typeof(double),
             typeof(ProcessProgress),
-            new PropertyMetadata(0d, OnProgressPrimaryChanged));
-
-        private static void OnProgressPrimaryChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            
-        }
+            new PropertyMetadata(0d));
 
         public double ProgressPrimary
         {
@@ -135,12 +111,7 @@ namespace WinUIShared.Controls
             nameof(LeftTextSecondary),
             typeof(string),
             typeof(ProcessProgress),
-            new PropertyMetadata(string.Empty, OnLeftTextSecondaryChanged));
-
-        private static void OnLeftTextSecondaryChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            
-        }
+            new PropertyMetadata(string.Empty));
 
         public string LeftTextSecondary
         {
@@ -152,12 +123,7 @@ namespace WinUIShared.Controls
             nameof(CenterTextSecondary),
             typeof(string),
             typeof(ProcessProgress),
-            new PropertyMetadata(string.Empty, OnCenterTextSecondaryChanged));
-
-        private static void OnCenterTextSecondaryChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            
-        }
+            new PropertyMetadata(string.Empty));
 
         public string CenterTextSecondary
         {
@@ -169,12 +135,7 @@ namespace WinUIShared.Controls
             nameof(RightTextSecondary),
             typeof(string),
             typeof(ProcessProgress),
-            new PropertyMetadata(string.Empty, OnRightTextSecondaryChanged));
-
-        private static void OnRightTextSecondaryChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            
-        }
+            new PropertyMetadata(string.Empty));
 
         public string RightTextSecondary
         {
@@ -186,12 +147,7 @@ namespace WinUIShared.Controls
             nameof(ProgressSecondary),
             typeof(double),
             typeof(ProcessProgress),
-            new PropertyMetadata(0d, OnProgressSecondaryChanged));
-
-        private static void OnProgressSecondaryChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            
-        }
+            new PropertyMetadata(0d));
 
 
         public double ProgressSecondary
@@ -254,7 +210,16 @@ namespace WinUIShared.Controls
         {
             CancelRequested?.Invoke(this, EventArgs.Empty);
             Paused = false;
-            CancelFlyout.Hide();
+
+            var button = (Button)sender;
+            var container = button.Parent;
+            while (container != null && container is not FlyoutPresenter)
+            {
+                container = VisualTreeHelper.GetParent(container);
+            }
+            var flyoutPresenter = (FlyoutPresenter)container;
+            var popup = flyoutPresenter.Parent as Popup;
+            popup.IsOpen = false;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
