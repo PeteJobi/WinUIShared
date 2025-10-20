@@ -17,9 +17,9 @@
 
     <Grid Visibility="{x:Bind BeforeOperation, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}" Padding="10">
         <RelativePanel Visibility="{x:Bind OnlyPrimary, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}">
-            <TextBlock Name="PrimaryLeftTextLabel" Text="{x:Bind LeftTextPrimary, Mode=OneWay}"/>
-            <TextBlock RelativePanel.AlignHorizontalCenterWith="PrimaryProgressBar" Text="{x:Bind CenterTextPrimary, Mode=OneWay}"/>
-            <TextBlock RelativePanel.AlignRightWith="PrimaryProgressBar" Text="{x:Bind RightTextPrimary, Mode=OneWay}"/>
+            <TextBlock Name="PrimaryLeftTextLabel" Text="{x:Bind LeftTextPrimary, Mode=OneWay}" MaxWidth="500" TextTrimming="CharacterEllipsis"/>
+            <TextBlock RelativePanel.AlignHorizontalCenterWith="PrimaryProgressBar" Text="{x:Bind CenterTextPrimary, Mode=OneWay}" MaxWidth="500" TextTrimming="CharacterEllipsis"/>
+            <TextBlock RelativePanel.AlignRightWith="PrimaryProgressBar" Text="{x:Bind RightTextPrimary, Mode=OneWay}" MaxWidth="500" TextTrimming="CharacterEllipsis"/>
             <ProgressBar Name="PrimaryProgressBar" RelativePanel.AlignLeftWithPanel="True" Value="{x:Bind ProgressPrimary, Mode=OneWay}"
 		        RelativePanel.Below="PrimaryLeftTextLabel" RelativePanel.LeftOf="CancelClose" Margin="0,4,0,0"/>
             <Button Name="CancelClose" RelativePanel.AlignRightWithPanel="True" Margin="10,0,0,0" Width="120" Click="CancelOrClose_OnClick">
@@ -38,10 +38,11 @@
                     <TextBlock VerticalAlignment="Center" Text="{x:Bind AfterOperation, Mode=OneWay, Converter={StaticResource CloseOrCancelConverter}}"/>
                 </StackPanel>
             </Button>
-            <TextBlock RelativePanel.Above="SecondaryProgressBar" Text="{x:Bind LeftTextSecondary, Mode=OneWay}"/>
-            <TextBlock RelativePanel.Above="SecondaryProgressBar" RelativePanel.Below="PrimaryProgressBar"
+            <TextBlock RelativePanel.Above="SecondaryProgressBar" Text="{x:Bind LeftTextSecondary, Mode=OneWay}" MaxWidth="500" TextTrimming="CharacterEllipsis"/>
+            <TextBlock RelativePanel.Above="SecondaryProgressBar" RelativePanel.Below="PrimaryProgressBar" MaxWidth="500" TextTrimming="CharacterEllipsis"
                        RelativePanel.AlignHorizontalCenterWith="SecondaryProgressBar" Margin="0,30,0,0" Text="{x:Bind CenterTextSecondary, Mode=OneWay}"/>
-            <TextBlock RelativePanel.Above="SecondaryProgressBar" RelativePanel.AlignRightWith="SecondaryProgressBar" Text="{x:Bind RightTextSecondary, Mode=OneWay}"/>
+            <TextBlock RelativePanel.Above="SecondaryProgressBar" RelativePanel.AlignRightWith="SecondaryProgressBar" Text="{x:Bind RightTextSecondary, Mode=OneWay}"
+                       MaxWidth="500" TextTrimming="CharacterEllipsis"/>
             <ProgressBar Name="SecondaryProgressBar" RelativePanel.AlignLeftWithPanel="True" Value="{x:Bind ProgressSecondary, Mode=OneWay}"
 		        RelativePanel.AlignBottomWithPanel="True" RelativePanel.LeftOf="PauseView" Margin="0,4,0,0"/>
             <Button Name="PauseView" RelativePanel.AlignBottomWithPanel="True" RelativePanel.AlignRightWithPanel="True" Width="120" Margin="10,0,0,0"
