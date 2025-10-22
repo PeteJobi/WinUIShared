@@ -18,6 +18,7 @@ using System.Xml.Linq;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using WinUIShared.Enums;
+using WinUIShared.Helpers;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -46,6 +47,17 @@ namespace WinUIShared.Controls
         {
             get => paused;
             set => SetField(ref paused, value);
+        }
+
+        public static readonly DependencyProperty ProcessorProperty = DependencyProperty.Register(
+            nameof(Processor),
+            typeof(Processor),
+            typeof(ProcessProgress),
+            new PropertyMetadata(null));
+        public Processor Processor
+        {
+            get => (Processor)GetValue(ProcessorProperty);
+            set => SetValue(ProcessorProperty, value);
         }
 
         public static readonly DependencyProperty OnlyPrimaryProperty = DependencyProperty.Register(
@@ -181,17 +193,20 @@ namespace WinUIShared.Controls
         {
             if (State == OperationState.AfterOperation)
             {
+                Processor?.ViewFile();
                 ViewRequested?.Invoke(this, EventArgs.Empty);
                 return;
             }
 
             if (Paused)
             {
+                Processor?.Resume();
                 ResumeRequested?.Invoke(this, EventArgs.Empty);
                 Paused = false;
             }
             else
             {
+                Processor?.Pause();
                 PauseRequested?.Invoke(this, EventArgs.Empty);
                 Paused = true;
             }
@@ -201,6 +216,7 @@ namespace WinUIShared.Controls
         {
             if (State == OperationState.AfterOperation)
             {
+                State = OperationState.BeforeOperation;
                 CloseRequested?.Invoke(this, EventArgs.Empty);
                 return;
             }
@@ -210,9 +226,6 @@ namespace WinUIShared.Controls
 
         private void CancelProcess(object sender, RoutedEventArgs e)
         {
-            CancelRequested?.Invoke(this, EventArgs.Empty);
-            Paused = false;
-
             var button = (Button)sender;
             var container = button.Parent;
             while (container != null && container is not FlyoutPresenter)
@@ -222,6 +235,11 @@ namespace WinUIShared.Controls
             var flyoutPresenter = (FlyoutPresenter)container;
             var popup = flyoutPresenter.Parent as Popup;
             popup.IsOpen = false;
+
+            State = OperationState.BeforeOperation;
+            Processor?.Cancel();
+            CancelRequested?.Invoke(this, EventArgs.Empty);
+            Paused = false;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
