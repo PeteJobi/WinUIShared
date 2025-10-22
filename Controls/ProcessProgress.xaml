@@ -15,7 +15,7 @@
         <converters:BoolToObjectConverter x:Key="ResumeOrPauseGlyphConverter" TrueValue="&#xE768;" FalseValue="&#xE784;"/>
     </UserControl.Resources>
 
-    <Grid Visibility="{x:Bind BeforeOperation, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}" Padding="10">
+    <Grid Visibility="{x:Bind BeforeOperation, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}">
         <RelativePanel Visibility="{x:Bind OnlyPrimary, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}">
             <TextBlock Name="PrimaryLeftTextLabel" Text="{x:Bind LeftTextPrimary, Mode=OneWay}" MaxWidth="500" TextTrimming="CharacterEllipsis"/>
             <TextBlock RelativePanel.AlignHorizontalCenterWith="PrimaryProgressBar" Text="{x:Bind CenterTextPrimary, Mode=OneWay}" MaxWidth="500" TextTrimming="CharacterEllipsis"/>
