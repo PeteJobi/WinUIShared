@@ -36,6 +36,7 @@ namespace WinUIShared.Controls
             get => (OperationState)GetValue(StateProperty);
             set => SetValue(StateProperty, value);
         }
+        public event EventHandler<OperationState> StateChanged;
         private bool BeforeOperation => State == OperationState.BeforeOperation;
         private bool DuringOperation => State == OperationState.DuringOperation;
         private bool AfterOperation => State == OperationState.AfterOperation;
@@ -173,6 +174,7 @@ namespace WinUIShared.Controls
             pp.OnPropertyChanged(nameof(BeforeOperation));
             pp.OnPropertyChanged(nameof(DuringOperation));
             pp.OnPropertyChanged(nameof(AfterOperation));
+            pp.StateChanged?.Invoke(pp, pp.State);
         }
 
         private void PauseOrViewTour_OnClick(object sender, RoutedEventArgs e)
