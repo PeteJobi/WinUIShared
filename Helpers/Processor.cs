@@ -17,7 +17,7 @@ namespace WinUIShared.Helpers
         protected const string FileNameLongError =
             "The source file name is too long. Shorten it to get the total number of characters in the destination directory lower than 256.\n\nDestination directory: ";
         
-        protected bool CheckNoSpaceDuringMerge(string line, Action<string> error)
+        protected bool CheckNoSpaceDuringProcess(string line, Action<string> error)
         {
             if (!line.EndsWith("No space left on device") && !line.EndsWith("I/O error")) return false;
             Pause();
@@ -45,7 +45,6 @@ namespace WinUIShared.Helpers
             if (currentProcess == null) return;
             currentProcess.Kill();
             await currentProcess.WaitForExitAsync();
-            Debug.WriteLine("1 Killed");
             hasBeenKilled = true;
             currentProcess = null;
             if (Directory.Exists(outputFile)) Directory.Delete(outputFile, true);
@@ -76,7 +75,7 @@ namespace WinUIShared.Helpers
 
         protected async Task<bool> StartProcess(string processFileName, string arguments, DataReceivedEventHandler? outputEventHandler, DataReceivedEventHandler? errorEventHandler)
         {
-            Process ffmpeg = new()
+            Process process = new()
             {
                 StartInfo = new ProcessStartInfo()
                 {
@@ -88,18 +87,27 @@ namespace WinUIShared.Helpers
                 },
                 EnableRaisingEvents = true
             };
-            ffmpeg.OutputDataReceived += outputEventHandler;
-            ffmpeg.ErrorDataReceived += errorEventHandler;
-            ffmpeg.Start();
-            ffmpeg.BeginErrorReadLine();
-            ffmpeg.BeginOutputReadLine();
+            process.OutputDataReceived += outputEventHandler;
+            process.ErrorDataReceived += errorEventHandler;
+            process.Start();
+            process.BeginErrorReadLine();
+            process.BeginOutputReadLine();
             hasBeenKilled = false;
-            currentProcess = ffmpeg;
-            await ffmpeg.WaitForExitAsync();
-            var success = ffmpeg.ExitCode == 0;
-            ffmpeg.Dispose();
+            currentProcess = process;
+            await process.WaitForExitAsync();
+            var success = process.ExitCode == 0;
+            process.Dispose();
             currentProcess = null;
             return success;
+        }
+
+        public async Task GetGPUs()
+        {
+            await StartProcess("powershell", "-NoProfile -Command \"Get-CimInstance Win32_VideoController | ForEach-Object { \\\"$($_.Caption);$($_.DeviceID);$($_.AdapterCompatibility)\\\" }\"", (sender, args) =>
+            {
+                if (string.IsNullOrWhiteSpace(args.Data)) return;
+                Debug.WriteLine(args.Data);
+            }, null);
         }
 
         protected Task<bool> StartFfmpegProcess(string arguments, DataReceivedEventHandler? errorEventHandler)
