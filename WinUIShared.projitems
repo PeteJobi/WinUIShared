@@ -9,6 +9,12 @@
     <Import_RootNamespace>WinUIShared</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)controls\HardwareSelector.xaml.cs">
+      <DependentUpon>HardwareSelector.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)controls\ProcessManager.xaml.cs">
+      <DependentUpon>ProcessManager.xaml</DependentUpon>
+    </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ProcessProgress.xaml.cs">
       <DependentUpon>ProcessProgress.xaml</DependentUpon>
     </Compile>
@@ -16,6 +22,14 @@
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\Processor.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="$(MSBuildThisFileDirectory)controls\HardwareSelector.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="$(MSBuildThisFileDirectory)controls\ProcessManager.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="$(MSBuildThisFileDirectory)Controls\ProcessProgress.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
       <SubType>Designer</SubType>
