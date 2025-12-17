@@ -170,9 +170,70 @@ namespace WinUIShared.Helpers
             gpuInfo = null;
         }
 
-        protected Task<bool> StartFfmpegProcess(string arguments, DataReceivedEventHandler? errorEventHandler)
+        public delegate void ProgressEventHandler(TimeSpan currentTime, TimeSpan duration, double progressPercent, int currentFrame);
+        private DataReceivedEventHandler ProgressToDataReceivedEventHandler(ProgressEventHandler progressHandler, Action<string>? lineWatcher)
         {
-            return StartProcess(ffmpegPath, arguments, null, errorEventHandler);
+            var duration = TimeSpan.MinValue;
+            return (sender, args) =>
+            {
+                if (string.IsNullOrWhiteSpace(args.Data) || hasBeenKilled) return;
+                Debug.WriteLine(args.Data);
+                lineWatcher?.Invoke(args.Data);
+                if (CheckFileNameLongErrorSplit(args.Data)) return;
+                if (duration == TimeSpan.MinValue)
+                {
+                    var matchCollection = Regex.Matches(args.Data, @"\s*Duration:\s(\d{2}:\d{2}:\d{2}\.\d{2}).+");
+                    if (matchCollection.Count == 0) return;
+                    duration = TimeSpan.Parse(matchCollection[0].Groups[1].Value);
+                }
+                if (!args.Data.StartsWith("frame")) return;
+                if (!CheckNoSpaceDuringProcess(args.Data))
+                {
+                    var matchCollection =
+                        Regex.Matches(args.Data, @"^frame=\s*(\d+)\s.+?time=(\d{2}:\d{2}:\d{2}\.\d{2}).+");
+                    if (matchCollection.Count == 0) return;
+                    var currentTime = TimeSpan.Parse(matchCollection[0].Groups[2].Value);
+                    progressHandler.Invoke(currentTime, duration, currentTime / duration * ProgressMax,
+                        int.Parse(matchCollection[0].Groups[1].Value));
+                }
+            };
+        }
+
+        protected Task<bool> StartFfmpegProcess(string arguments, DataReceivedEventHandler errorEventHandler)
+        {
+            return StartProcess(ffmpegPath, $"-y {arguments}", null, errorEventHandler);
+        }
+
+        protected Task<bool> StartFfmpegProcess(string arguments, ProgressEventHandler progressHandler, Action<string>? lineWatcher = null)
+        {
+            return StartFfmpegProcess(arguments, ProgressToDataReceivedEventHandler(progressHandler, lineWatcher));
+        }
+
+        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, int quality, int? preset, string extraArguments, DataReceivedEventHandler errorEventHandler)
+        {
+            var threadsParam = gpuInfo == null ? string.Empty : "-threads 1";
+            var fpsModeParam = gpuInfo == null ? string.Empty : "-fps_mode passthrough";
+            var inputParams = string.Join(" ", inputs.Select(i => GPUInfo.InputParams(gpuInfo, i)));
+            var encodingParams = $"-c:v {GPUInfo.EncodingParamsDict[gpuInfo?.Vendor ?? GPUVendor.None]} -c:a copy";
+            var qualityParams = GPUInfo.QualityParams(gpuInfo, quality);
+            var presetParams = preset == null ? string.Empty : GPUInfo.PresetParams(gpuInfo, preset.Value);
+            return StartFfmpegProcess($"{threadsParam} {inputParams} {encodingParams} {fpsModeParam} {qualityParams} {presetParams} {extraArguments} {output}", errorEventHandler);
+        }
+
+        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, int quality,
+            int? preset, string extraArguments, ProgressEventHandler progressHandler, Action<string>? lineWatcher = null)
+        {
+            return StartFfmpegTranscodingProcess(inputs, output, quality, preset, extraArguments, ProgressToDataReceivedEventHandler(progressHandler, lineWatcher));
+        }
+
+        protected Task<bool> StartFfmpegTranscodingProcessDefaultQuality(IEnumerable<string> inputs, string output, string extraArguments, DataReceivedEventHandler errorEventHandler)
+        {
+            return StartFfmpegTranscodingProcess(inputs, output, 18, null, extraArguments, errorEventHandler);
+        }
+
+        protected Task<bool> StartFfmpegTranscodingProcessDefaultQuality(IEnumerable<string> inputs, string output, string extraArguments, ProgressEventHandler progressHandler, Action<string>? lineWatcher = null)
+        {
+            return StartFfmpegTranscodingProcess(inputs, output, 18, null, extraArguments, progressHandler, lineWatcher);
         }
 
         [Flags]
