@@ -27,6 +27,7 @@ namespace WinUIShared.Helpers
         protected IProgress<string> rightTextSecondary = defaultProgressTextReporter;
         protected IProgress<double> progressSecondary = defaultProgressValueReporter;
         protected Action<string> error = _ => { };
+        protected GPUInfo? gpuInfo;
         
         protected bool CheckNoSpaceDuringProcess(string line, Action<string> error)
         {
@@ -136,13 +137,37 @@ namespace WinUIShared.Helpers
             return success;
         }
 
-        public async Task GetGPUs()
+        public async Task<List<GPUInfo>> GetGpUs()
         {
+            var gpuList = new List<GPUInfo>();
             await StartProcess("powershell", "-NoProfile -Command \"Get-CimInstance Win32_VideoController | ForEach-Object { \\\"$($_.Caption);$($_.DeviceID);$($_.AdapterCompatibility)\\\" }\"", (sender, args) =>
             {
                 if (string.IsNullOrWhiteSpace(args.Data)) return;
                 Debug.WriteLine(args.Data);
+                var line = args.Data.Split(';');
+                if(line.Length != 3) return;
+                if (!int.TryParse(line[1]["VideoController".Length..], out var deviceId)) return;
+                gpuList.Add(new GPUInfo(line[0], deviceId - 1, GetGpuVendor(line[2])));
             }, null);
+            return gpuList;
+
+            static GPUVendor GetGpuVendor(string adapterCompatibility)
+            {
+                if (adapterCompatibility.Contains("NVIDIA")) return GPUVendor.Nvidia;
+                if (adapterCompatibility.Contains("AMD") || adapterCompatibility.Contains("Advanced Micro Devices")) return GPUVendor.AMD;
+                if (adapterCompatibility.Contains("Intel")) return GPUVendor.Intel;
+                return GPUVendor.None;
+            }
+        }
+
+        public void EnableHardwareAccelParams(GPUInfo gpuInfo)
+        {
+            this.gpuInfo = gpuInfo;
+        }
+
+        public void DisableHardwareAccel()
+        {
+            gpuInfo = null;
         }
 
         protected Task<bool> StartFfmpegProcess(string arguments, DataReceivedEventHandler? errorEventHandler)
