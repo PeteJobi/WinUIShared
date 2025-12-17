@@ -49,17 +49,6 @@ namespace WinUIShared.Controls
             set => SetField(ref paused, value);
         }
 
-        public static readonly DependencyProperty ProcessorProperty = DependencyProperty.Register(
-            nameof(Processor),
-            typeof(Processor),
-            typeof(ProcessProgress),
-            new PropertyMetadata(null));
-        public Processor Processor
-        {
-            get => (Processor)GetValue(ProcessorProperty);
-            set => SetValue(ProcessorProperty, value);
-        }
-
         public static readonly DependencyProperty OnlyPrimaryProperty = DependencyProperty.Register(
             nameof(OnlyPrimary),
             typeof(bool),
@@ -71,6 +60,8 @@ namespace WinUIShared.Controls
             get => (bool)GetValue(OnlyPrimaryProperty);
             set => SetValue(OnlyPrimaryProperty, value);
         }
+
+        #region Label Properties
 
         public static readonly DependencyProperty LeftTextPrimaryProperty = DependencyProperty.Register(
             nameof(LeftTextPrimary),
@@ -162,12 +153,13 @@ namespace WinUIShared.Controls
             typeof(ProcessProgress),
             new PropertyMetadata(0d));
 
-
         public double ProgressSecondary
         {
             get => (double)GetValue(ProgressSecondaryProperty);
             set => SetValue(ProgressSecondaryProperty, value);
         }
+
+        #endregion
 
         public event EventHandler ViewRequested;
         public event EventHandler PauseRequested;
@@ -193,20 +185,17 @@ namespace WinUIShared.Controls
         {
             if (State == OperationState.AfterOperation)
             {
-                Processor?.ViewFile();
                 ViewRequested?.Invoke(this, EventArgs.Empty);
                 return;
             }
 
             if (Paused)
             {
-                Processor?.Resume();
                 ResumeRequested?.Invoke(this, EventArgs.Empty);
                 Paused = false;
             }
             else
             {
-                Processor?.Pause();
                 PauseRequested?.Invoke(this, EventArgs.Empty);
                 Paused = true;
             }
@@ -237,7 +226,6 @@ namespace WinUIShared.Controls
             popup.IsOpen = false;
 
             State = OperationState.BeforeOperation;
-            Processor?.Cancel();
             CancelRequested?.Invoke(this, EventArgs.Empty);
             Paused = false;
         }
@@ -255,37 +243,6 @@ namespace WinUIShared.Controls
             field = value;
             OnPropertyChanged(propertyName);
             return true;
-        }
-    }
-
-    public class TimeSpanToTextConverter : IValueConverter
-    {
-        public bool DontShowFractionalSeconds { get; set; }
-
-        public object Convert(object value, Type targetType, object parameter, string language)
-        {
-            if (value is TimeSpan timeSpan)
-            {
-                return TimespanToTextFormat(timeSpan, DontShowFractionalSeconds);
-            }
-
-            return string.Empty;
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, string language)
-        {
-            if (value is string str && TimeSpan.TryParse(str, out var timeSpan))
-            {
-                return timeSpan;
-            }
-
-            return TimeSpan.Zero;
-        }
-
-        public static string TimespanToTextFormat(TimeSpan timeSpan, bool dontShowFractionalSeconds = false)
-        {
-            var format = dontShowFractionalSeconds ? @"hh\:mm\:ss" : @"hh\:mm\:ss\.fff";
-            return timeSpan.ToString(format);
         }
     }
 }
