@@ -16,6 +16,17 @@ namespace WinUIShared.Helpers
         protected string? outputFile;
         protected const string FileNameLongError =
             "The source file name is too long. Shorten it to get the total number of characters in the destination directory lower than 256.\n\nDestination directory: ";
+        protected static readonly IProgress<string> defaultProgressTextReporter = new Progress<string>(s => { });
+        protected static readonly IProgress<double> defaultProgressValueReporter = new Progress<double>(d => { });
+        protected IProgress<string> leftTextPrimary = defaultProgressTextReporter;
+        protected IProgress<string> centerTextPrimary = defaultProgressTextReporter;
+        protected IProgress<string> rightTextPrimary = defaultProgressTextReporter;
+        protected IProgress<double> progressPrimary = defaultProgressValueReporter;
+        protected IProgress<string> leftTextSecondary = defaultProgressTextReporter;
+        protected IProgress<string> centerTextSecondary = defaultProgressTextReporter;
+        protected IProgress<string> rightTextSecondary = defaultProgressTextReporter;
+        protected IProgress<double> progressSecondary = defaultProgressValueReporter;
+        protected Action<string> error = _ => { };
         
         protected bool CheckNoSpaceDuringProcess(string line, Action<string> error)
         {
@@ -71,6 +82,30 @@ namespace WinUIShared.Helpers
                 Arguments = $"/e, /select, \"{outputFile}\""
             };
             Process.Start(info);
+        }
+
+        public void SetProgressAndErrorReporters(
+            IProgress<string>? leftTextPrimary = null,
+            IProgress<string>? centerTextPrimary = null,
+            IProgress<string>? rightTextPrimary = null,
+            IProgress<double>? progressPrimary = null,
+            IProgress<string>? leftTextSecondary = null,
+            IProgress<string>? centerTextSecondary = null,
+            IProgress<string>? rightTextSecondary = null,
+            IProgress<double>? progressSecondary = null,
+            Action<string>? error = null)
+        {
+            this.leftTextPrimary = leftTextPrimary ?? defaultProgressTextReporter;
+            this.centerTextPrimary = centerTextPrimary ?? defaultProgressTextReporter;
+            this.rightTextPrimary = rightTextPrimary ?? defaultProgressTextReporter;
+            this.progressPrimary = progressPrimary ?? defaultProgressValueReporter;
+
+            this.leftTextSecondary = leftTextSecondary ?? defaultProgressTextReporter;
+            this.centerTextSecondary = centerTextSecondary ?? defaultProgressTextReporter;
+            this.rightTextSecondary = rightTextSecondary ?? defaultProgressTextReporter;
+            this.progressSecondary = progressSecondary ?? defaultProgressValueReporter;
+
+            this.error = error ?? (_ => { });
         }
 
         protected async Task<bool> StartProcess(string processFileName, string arguments, DataReceivedEventHandler? outputEventHandler, DataReceivedEventHandler? errorEventHandler)
