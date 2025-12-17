@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using WinUIShared.Controls;
 
 namespace WinUIShared.Helpers
 {
@@ -28,8 +31,14 @@ namespace WinUIShared.Helpers
         protected IProgress<double> progressSecondary = defaultProgressValueReporter;
         protected Action<string> error = _ => { };
         protected GPUInfo? gpuInfo;
-        
-        protected bool CheckNoSpaceDuringProcess(string line, Action<string> error)
+
+        public bool IsAudio(string mediaPath)
+        {
+            var ext = Path.GetExtension(mediaPath).ToLower();
+            return ext is ".mp3" or ".wav" or ".flac" or ".aac" or ".m4a" or ".wma";
+        }
+
+        protected bool CheckNoSpaceDuringProcess(string line)
         {
             if (!line.EndsWith("No space left on device") && !line.EndsWith("I/O error")) return false;
             Pause();
@@ -37,7 +46,7 @@ namespace WinUIShared.Helpers
             return true;
         }
 
-        protected static bool CheckFileNameLongErrorSplit(string line, Action<string> error)
+        protected bool CheckFileNameLongErrorSplit(string line)
         {
             const string noSuchDirectory = ": No such file or directory";
             if (!line.EndsWith(noSuchDirectory)) return false;
@@ -52,6 +61,24 @@ namespace WinUIShared.Helpers
             return true;
         }
 
+        private async Task DeleteOutputFiles()
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    Debug.WriteLine($"Trial {i}");
+                    if (Directory.Exists(outputFile)) Directory.Delete(outputFile, true);
+                    else if (File.Exists(outputFile)) File.Delete(outputFile);
+                    return;
+                }
+                catch (IOException)
+                {
+                    await Task.Delay(100);
+                }
+            }
+        }
+
         public async Task Cancel()
         {
             if (currentProcess == null) return;
@@ -59,8 +86,7 @@ namespace WinUIShared.Helpers
             await currentProcess.WaitForExitAsync();
             hasBeenKilled = true;
             currentProcess = null;
-            if (Directory.Exists(outputFile)) Directory.Delete(outputFile, true);
-            else if (File.Exists(outputFile)) File.Delete(outputFile);
+            await DeleteOutputFiles();
         }
 
         public void Pause()
@@ -84,6 +110,8 @@ namespace WinUIShared.Helpers
             };
             Process.Start(info);
         }
+
+        public string? GetFile() => outputFile;
 
         public void SetProgressAndErrorReporters(
             IProgress<string>? leftTextPrimary = null,
@@ -237,7 +265,7 @@ namespace WinUIShared.Helpers
         }
 
         [Flags]
-        public enum ThreadAccess : int
+        public enum ThreadAccess
         {
             SUSPEND_RESUME = (0x0002)
         }
