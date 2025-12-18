@@ -13,7 +13,7 @@ namespace WinUIShared.Controls
     public sealed partial class HardwareSelector : UserControl
     {
         private ViewModel viewModel = new();
-        private GPUInfo? lastSelectedGpu;
+        private GpuInfo? lastSelectedGpu;
 
         public static readonly DependencyProperty ProcessorProperty = DependencyProperty.Register(
             nameof(Processor),
@@ -29,13 +29,13 @@ namespace WinUIShared.Controls
 
         public static readonly DependencyProperty SelectedGpuProperty = DependencyProperty.Register(
             nameof(SelectedGpu),
-            typeof(GPUInfo),
+            typeof(GpuInfo),
             typeof(HardwareSelector),
             new PropertyMetadata(null, OnSelectedGPUChanged));
 
-        public GPUInfo? SelectedGpu
+        public GpuInfo? SelectedGpu
         {
-            get => (GPUInfo?)GetValue(SelectedGpuProperty);
+            get => (GpuInfo?)GetValue(SelectedGpuProperty);
             set => SetValue(SelectedGpuProperty, value);
         }
 
@@ -49,7 +49,7 @@ namespace WinUIShared.Controls
             var selector = (HardwareSelector)d;
             if (selector.Processor == null) return;
             var gpuList = await selector.Processor.GetGpUs();
-            selector.viewModel.GPUs = new ObservableCollection<GPUInfo>(gpuList);
+            selector.viewModel.Gpus = new ObservableCollection<GpuInfo>(gpuList);
             if(selector.SelectedGpu != null) OnSelectedGPUChanged(d, e);
         }
 
@@ -61,13 +61,13 @@ namespace WinUIShared.Controls
                 selector.UseHardwareAccel.IsChecked = false;
                 return;
             }
-            var gpuList = selector.viewModel.GPUs;
+            var gpuList = selector.viewModel.Gpus;
             if (gpuList == null) return;
             if (gpuList.Count > 0)
             {
                 if (!gpuList.Contains(selector.SelectedGpu))
                 {
-                    selector.SelectedGpu = gpuList.First(g => g.DeviceID == selector.SelectedGpu.DeviceID);
+                    selector.SelectedGpu = gpuList.First(g => g.DeviceId == selector.SelectedGpu.DeviceId);
                 }
                 else
                 {
@@ -81,7 +81,7 @@ namespace WinUIShared.Controls
 
         private void OnChecked(object sender, RoutedEventArgs e)
         {
-            SelectedGpu ??= lastSelectedGpu ?? viewModel.GPUs.First();
+            SelectedGpu ??= lastSelectedGpu ?? viewModel.Gpus.First();
         }
 
         private void OnUnchecked(object sender, RoutedEventArgs e)
@@ -92,8 +92,8 @@ namespace WinUIShared.Controls
 
     internal class ViewModel: INotifyPropertyChanged
     {
-        private ObservableCollection<GPUInfo> _gpus;
-        public ObservableCollection<GPUInfo> GPUs
+        private ObservableCollection<GpuInfo> _gpus;
+        public ObservableCollection<GpuInfo> Gpus
         {
             get => _gpus;
             set => SetProperty(ref _gpus, value);
@@ -115,74 +115,68 @@ namespace WinUIShared.Controls
         }
     }
 
-    public enum GPUVendor
+    public enum GpuVendor
     {
         None,
         Nvidia,
-        AMD,
+        Amd,
         Intel
     }
 
-    public class GPUInfo
+    public class GpuInfo(string name, int deviceId, GpuVendor vendor)
     {
-        public string Name { get; set; }
-        public int DeviceID { get; set; }
-        public GPUVendor Vendor { get; set; }
-        public GPUInfo(string name, int deviceID, GPUVendor vendor)
-        {
-            Name = name;
-            DeviceID = deviceID;
-            Vendor = vendor;
-        }
+        public string Name { get; set; } = name;
+        public int DeviceId { get; set; } = deviceId;
+        public GpuVendor Vendor { get; set; } = vendor;
 
         public override string ToString() => Name;
 
-        public static string InputParams(GPUInfo? gpuInfo, string input)
+        public static string InputParams(GpuInfo? gpuInfo, string input)
         {
             return gpuInfo?.Vendor switch
             {
-                GPUVendor.Nvidia => $"-hwaccel cuda -hwaccel_output_format cuda -hwaccel_device {gpuInfo.DeviceID} -i \"{input}\"",
-                GPUVendor.AMD => $"-hwaccel d3d11va -hwaccel_output_format d3d11 -hwaccel_device {gpuInfo.DeviceID} -i \"{input}\"",
-                GPUVendor.Intel => $"-hwaccel qsv -hwaccel_output_format qsv -hwaccel_device {gpuInfo.DeviceID} -i \"{input}\"",
+                GpuVendor.Nvidia => $"-hwaccel cuda -hwaccel_output_format cuda -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
+                GpuVendor.Amd => $"-hwaccel d3d11va -hwaccel_output_format d3d11 -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
+                GpuVendor.Intel => $"-hwaccel qsv -hwaccel_output_format qsv -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
                 _ => $"-i \"{input}\""
             };
         }
 
-        public static string QualityParams(GPUInfo? gpuInfo, int quality)
+        public static string QualityParams(GpuInfo? gpuInfo, int quality)
         {
             return gpuInfo?.Vendor switch
             {
-                GPUVendor.Nvidia => $"-rc vbr -b:v 0 -cq {quality}",
-                GPUVendor.AMD => $"-qp_i {quality} -qp_p {quality} -qp_b {quality}",
-                GPUVendor.Intel => $"-rc icq -global_quality {quality}",
+                GpuVendor.Nvidia => $"-rc vbr -b:v 0 -cq {quality}",
+                GpuVendor.Amd => $"-qp_i {quality} -qp_p {quality} -qp_b {quality}",
+                GpuVendor.Intel => $"-rc icq -global_quality {quality}",
                 _ => $"-crf {quality}"
             };
         }
 
-        public static string PresetParams(GPUInfo? gpuInfo, int presetIndex)
+        public static string PresetParams(GpuInfo? gpuInfo, int presetIndex)
         {
-            var presets = Presets[gpuInfo?.Vendor ?? GPUVendor.None];
+            var presets = Presets[gpuInfo?.Vendor ?? GpuVendor.None];
             if (presetIndex < 0 || presetIndex >= presets.Length)
                 throw new ArgumentOutOfRangeException(
                     $"Preset level {presetIndex} does not exist for {gpuInfo?.Vendor}");
-            return $"-{(gpuInfo?.Vendor == GPUVendor.AMD ? "quality" : "preset")} {presets[presetIndex]}";
+            return $"-{(gpuInfo?.Vendor == GpuVendor.Amd ? "quality" : "preset")} {presets[presetIndex]}";
         }
 
-        public static readonly Dictionary<GPUVendor, string> EncodingParamsDict = new()
+        public static readonly Dictionary<GpuVendor, string> EncodingParamsDict = new()
         {
-            { GPUVendor.None, "libx265" },
-            { GPUVendor.Nvidia, "hevc_nvenc" },
-            { GPUVendor.AMD, "hevc_amf" },
-            { GPUVendor.Intel, "hevc_qsv" }
+            { GpuVendor.None, "libx265" },
+            { GpuVendor.Nvidia, "hevc_nvenc" },
+            { GpuVendor.Amd, "hevc_amf" },
+            { GpuVendor.Intel, "hevc_qsv" }
         };
 
-        public static readonly Dictionary<GPUVendor, string[]> Presets = new()
+        public static readonly Dictionary<GpuVendor, string[]> Presets = new()
         {
-            { GPUVendor.None, ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo"] },
+            { GpuVendor.None, ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo"] },
             //{ GPUVendor.Nvidia, ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10"] },
-            { GPUVendor.Nvidia, ["default", "slow", "medium", "fast", "hp", "hq", "bd", "ll", "llhq", "llhp", "lossless", "losslessh"] },
-            { GPUVendor.AMD, ["speed", "balanced", "quality"] },
-            { GPUVendor.Intel, ["veryfast", "fast", "medium", "slow", "veryslow"] }
+            { GpuVendor.Nvidia, ["default", "slow", "medium", "fast", "hp", "hq", "bd", "ll", "llhq", "llhp", "lossless", "losslessh"] },
+            { GpuVendor.Amd, ["speed", "balanced", "quality"] },
+            { GpuVendor.Intel, ["veryfast", "fast", "medium", "slow", "veryslow"] }
         };
     }
 }

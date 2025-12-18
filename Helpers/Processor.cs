@@ -30,7 +30,7 @@ namespace WinUIShared.Helpers
         protected IProgress<string> rightTextSecondary = defaultProgressTextReporter;
         protected IProgress<double> progressSecondary = defaultProgressValueReporter;
         protected Action<string> error = _ => { };
-        protected GPUInfo? gpuInfo;
+        protected GpuInfo? gpuInfo;
 
         public bool IsAudio(string mediaPath)
         {
@@ -165,9 +165,9 @@ namespace WinUIShared.Helpers
             return success;
         }
 
-        public async Task<List<GPUInfo>> GetGpUs()
+        public async Task<List<GpuInfo>> GetGpUs()
         {
-            var gpuList = new List<GPUInfo>();
+            var gpuList = new List<GpuInfo>();
             await StartProcess("powershell", "-NoProfile -Command \"Get-CimInstance Win32_VideoController | ForEach-Object { \\\"$($_.Caption);$($_.DeviceID);$($_.AdapterCompatibility)\\\" }\"", (sender, args) =>
             {
                 if (string.IsNullOrWhiteSpace(args.Data)) return;
@@ -175,20 +175,20 @@ namespace WinUIShared.Helpers
                 var line = args.Data.Split(';');
                 if(line.Length != 3) return;
                 if (!int.TryParse(line[1]["VideoController".Length..], out var deviceId)) return;
-                gpuList.Add(new GPUInfo(line[0], deviceId - 1, GetGpuVendor(line[2])));
+                gpuList.Add(new GpuInfo(line[0], deviceId - 1, GetGpuVendor(line[2])));
             }, null);
             return gpuList;
 
-            static GPUVendor GetGpuVendor(string adapterCompatibility)
+            static GpuVendor GetGpuVendor(string adapterCompatibility)
             {
-                if (adapterCompatibility.Contains("NVIDIA")) return GPUVendor.Nvidia;
-                if (adapterCompatibility.Contains("AMD") || adapterCompatibility.Contains("Advanced Micro Devices")) return GPUVendor.AMD;
-                if (adapterCompatibility.Contains("Intel")) return GPUVendor.Intel;
-                return GPUVendor.None;
+                if (adapterCompatibility.Contains("NVIDIA")) return GpuVendor.Nvidia;
+                if (adapterCompatibility.Contains("AMD") || adapterCompatibility.Contains("Advanced Micro Devices")) return GpuVendor.Amd;
+                if (adapterCompatibility.Contains("Intel")) return GpuVendor.Intel;
+                return GpuVendor.None;
             }
         }
 
-        public void EnableHardwareAccelParams(GPUInfo gpuInfo)
+        public void EnableHardwareAccelParams(GpuInfo gpuInfo)
         {
             this.gpuInfo = gpuInfo;
         }
@@ -241,11 +241,11 @@ namespace WinUIShared.Helpers
         {
             var threadsParam = gpuInfo == null ? string.Empty : "-threads 1";
             var fpsModeParam = gpuInfo == null ? string.Empty : "-fps_mode passthrough";
-            var inputParams = string.Join(" ", inputs.Select(i => GPUInfo.InputParams(gpuInfo, i)));
-            var encodingParams = $"-c:v {GPUInfo.EncodingParamsDict[gpuInfo?.Vendor ?? GPUVendor.None]} -c:a copy";
-            var qualityParams = GPUInfo.QualityParams(gpuInfo, quality);
-            var presetParams = preset == null ? string.Empty : GPUInfo.PresetParams(gpuInfo, preset.Value);
-            return StartFfmpegProcess($"{threadsParam} {inputParams} {encodingParams} {fpsModeParam} {qualityParams} {presetParams} {extraArguments} {output}", errorEventHandler);
+            var inputParams = string.Join(" ", inputs.Select(i => GpuInfo.InputParams(gpuInfo, i)));
+            var encodingParams = $"-c:v {GpuInfo.EncodingParamsDict[gpuInfo?.Vendor ?? GpuVendor.None]} -c:a copy";
+            var qualityParams = GpuInfo.QualityParams(gpuInfo, quality);
+            var presetParams = preset == null ? string.Empty : GpuInfo.PresetParams(gpuInfo, preset.Value);
+            return StartFfmpegProcess($"{threadsParam} {inputParams} {encodingParams} {fpsModeParam} {qualityParams} {presetParams} {extraArguments} \"{output}\"", errorEventHandler);
         }
 
         protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, int quality,
