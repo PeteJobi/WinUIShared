@@ -4,7 +4,6 @@ using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml.Data;
-using VideoSplitterPage;
 using WinUIShared.Enums;
 using WinUIShared.Helpers;
 
@@ -46,6 +45,18 @@ namespace WinUIShared.Controls
         {
             get => (HardwareSelector)GetValue(HardwareSelectorProperty);
             set => SetValue(HardwareSelectorProperty, value);
+        }
+
+        public static readonly DependencyProperty OnlyPrimaryProperty = DependencyProperty.Register(
+            nameof(OnlyPrimary),
+            typeof(bool),
+            typeof(ProcessManager),
+            new PropertyMetadata(false));
+
+        public bool OnlyPrimary
+        {
+            get => (bool)GetValue(OnlyPrimaryProperty);
+            set => SetValue(OnlyPrimaryProperty, value);
         }
 
         private bool processFailed;
@@ -150,7 +161,7 @@ namespace WinUIShared.Controls
 
             async Task ErrorAction(string message)
             {
-                ErrorDialog.Title = "Split operation failed";
+                ErrorDialog.Title = "Operation failed";
                 ErrorDialog.Content = message;
                 await ErrorDialog.ShowAsync();
             }

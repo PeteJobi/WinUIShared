@@ -12,7 +12,7 @@
         <controls:ProcessProgress x:Name="ProcessProgress" State="{x:Bind State, Mode=TwoWay}" Padding="{x:Bind Root.Padding, Mode=OneWay}"
                                   PauseRequested="ProcessProgress_OnPauseRequested" ResumeRequested="ProcessProgress_OnResumeRequested"
                                   ViewRequested="ProcessProgress_OnViewRequested" CancelRequested="ProcessProgress_OnCancelRequested"
-        />
+                                  OnlyPrimary="{x:Bind OnlyPrimary, Mode=OneWay}"/>
         <ContentDialog Name="ErrorDialog" IsPrimaryButtonEnabled="True" PrimaryButtonText="Ok"/>
     </Grid>
 
