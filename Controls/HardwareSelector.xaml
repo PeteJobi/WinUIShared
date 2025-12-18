@@ -5,17 +5,22 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:converters="using:CommunityToolkit.WinUI.Converters"
-    xmlns:controls="using:WinUIShared.Controls"
     x:Name="Root"
     mc:Ignorable="d">
 
-    <Grid>
+    <UserControl.Resources>
+        <converters:CollectionVisibilityConverter x:Name="CollectionVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <Grid Visibility="{x:Bind viewModel.Gpus, Mode=OneWay, Converter={StaticResource CollectionVisibilityConverter}}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
-        <CheckBox Name="UseHardwareAccel" Checked="OnChecked" Unchecked="OnUnchecked">Hardware acceleration</CheckBox>
-        <ComboBox Grid.Column="1" ItemsSource="{x:Bind viewModel.GPUs, Mode=OneWay}" HorizontalAlignment="Center"
+        <CheckBox Name="UseHardwareAccel" Checked="OnChecked" Unchecked="OnUnchecked">
+            <TextBlock TextTrimming="CharacterEllipsis">Hardware acceleration</TextBlock>
+        </CheckBox>
+        <ComboBox Grid.Column="1" ItemsSource="{x:Bind viewModel.Gpus, Mode=OneWay}" HorizontalAlignment="Center" Margin="10,0,0,0"
                   SelectedItem="{x:Bind SelectedGpu, Mode=TwoWay}" Visibility="{x:Bind UseHardwareAccel.IsChecked, Mode=OneWay}"/>
     </Grid>
 
