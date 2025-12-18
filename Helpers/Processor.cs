@@ -198,7 +198,7 @@ namespace WinUIShared.Helpers
             gpuInfo = null;
         }
 
-        public delegate void ProgressEventHandler(TimeSpan currentTime, TimeSpan duration, double progressPercent, int currentFrame);
+        public delegate void ProgressEventHandler(double progressPercent, TimeSpan currentTime, TimeSpan duration, int currentFrame);
         private DataReceivedEventHandler ProgressToDataReceivedEventHandler(ProgressEventHandler progressHandler, Action<string>? lineWatcher)
         {
             var duration = TimeSpan.MinValue;
@@ -221,7 +221,7 @@ namespace WinUIShared.Helpers
                         Regex.Matches(args.Data, @"^frame=\s*(\d+)\s.+?time=(\d{2}:\d{2}:\d{2}\.\d{2}).+");
                     if (matchCollection.Count == 0) return;
                     var currentTime = TimeSpan.Parse(matchCollection[0].Groups[2].Value);
-                    progressHandler.Invoke(currentTime, duration, currentTime / duration * ProgressMax,
+                    progressHandler.Invoke(currentTime / duration * ProgressMax, currentTime, duration,
                         int.Parse(matchCollection[0].Groups[1].Value));
                 }
             };
