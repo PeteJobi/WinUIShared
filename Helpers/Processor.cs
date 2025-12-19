@@ -237,21 +237,33 @@ namespace WinUIShared.Helpers
             return StartFfmpegProcess(arguments, ProgressToDataReceivedEventHandler(progressHandler, lineWatcher));
         }
 
-        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, int quality, int? preset, string extraArguments, DataReceivedEventHandler errorEventHandler)
+        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, string argumentsBeforeInput, string argumentsAfterInput, DataReceivedEventHandler errorEventHandler)
         {
-            var threadsParam = gpuInfo == null ? string.Empty : "-threads 1";
-            var fpsModeParam = gpuInfo == null ? string.Empty : "-fps_mode passthrough";
             var inputParams = string.Join(" ", inputs.Select(i => GpuInfo.InputParams(gpuInfo, i)));
+            return StartFfmpegProcess($"{argumentsBeforeInput} {inputParams} {argumentsAfterInput} \"{output}\"", errorEventHandler);
+        }
+
+        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, string argumentsBeforeInput, string argumentsAfterInput,
+            ProgressEventHandler progressHandler, Action<string>? lineWatcher = null)
+        {
+            var inputParams = string.Join(" ", inputs.Select(i => GpuInfo.InputParams(gpuInfo, i)));
+            return StartFfmpegProcess($"{argumentsBeforeInput} {inputParams} {argumentsAfterInput} \"{output}\"", ProgressToDataReceivedEventHandler(progressHandler, lineWatcher));
+        }
+
+        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, int quality, string? preset, string extraArgumentsAfterInput, DataReceivedEventHandler errorEventHandler)
+        {
+            var threadsParam = gpuInfo == null ? string.Empty : "-threads 1"; //Will limit CPU crop/scale
+            var fpsModeParam = gpuInfo != null ? string.Empty : "-fps_mode passthrough";
             var encodingParams = $"-c:v {GpuInfo.EncodingParamsDict[gpuInfo?.Vendor ?? GpuVendor.None]} -c:a copy";
             var qualityParams = GpuInfo.QualityParams(gpuInfo, quality);
-            var presetParams = preset == null ? string.Empty : GpuInfo.PresetParams(gpuInfo, preset.Value);
-            return StartFfmpegProcess($"{threadsParam} {inputParams} {encodingParams} {fpsModeParam} {qualityParams} {presetParams} {extraArguments} \"{output}\"", errorEventHandler);
+            var presetParams = preset == null ? string.Empty : $"-{(gpuInfo?.Vendor == GpuVendor.Amd ? "quality" : "preset")} {preset}";
+            return StartFfmpegTranscodingProcess(inputs, output, threadsParam, $"{encodingParams} {fpsModeParam} {qualityParams} {presetParams} {extraArgumentsAfterInput}", errorEventHandler);
         }
 
         protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, int quality,
-            int? preset, string extraArguments, ProgressEventHandler progressHandler, Action<string>? lineWatcher = null)
+            string? preset, string extraArgumentsAfterInput, ProgressEventHandler progressHandler, Action<string>? lineWatcher = null)
         {
-            return StartFfmpegTranscodingProcess(inputs, output, quality, preset, extraArguments, ProgressToDataReceivedEventHandler(progressHandler, lineWatcher));
+            return StartFfmpegTranscodingProcess(inputs, output, quality, preset, extraArgumentsAfterInput, ProgressToDataReceivedEventHandler(progressHandler, lineWatcher));
         }
 
         protected Task<bool> StartFfmpegTranscodingProcessDefaultQuality(IEnumerable<string> inputs, string output, string extraArguments, DataReceivedEventHandler errorEventHandler)
