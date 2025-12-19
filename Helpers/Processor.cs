@@ -46,7 +46,7 @@ namespace WinUIShared.Helpers
             return true;
         }
 
-        protected bool CheckFileNameLongErrorSplit(string line)
+        protected bool CheckFileNameLongError(string line)
         {
             const string noSuchDirectory = ": No such file or directory";
             if (!line.EndsWith(noSuchDirectory)) return false;
@@ -207,7 +207,7 @@ namespace WinUIShared.Helpers
                 if (string.IsNullOrWhiteSpace(args.Data) || hasBeenKilled) return;
                 Debug.WriteLine(args.Data);
                 lineWatcher?.Invoke(args.Data);
-                if (CheckFileNameLongErrorSplit(args.Data)) return;
+                if (CheckFileNameLongError(args.Data)) return;
                 if (duration == TimeSpan.MinValue)
                 {
                     var matchCollection = Regex.Matches(args.Data, @"\s*Duration:\s(\d{2}:\d{2}:\d{2}\.\d{2}).+");
