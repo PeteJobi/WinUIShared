@@ -19,6 +19,7 @@
       <DependentUpon>ProcessProgress.xaml</DependentUpon>
     </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)Enums.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\Converters.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\Processor.cs" />
   </ItemGroup>
   <ItemGroup>
