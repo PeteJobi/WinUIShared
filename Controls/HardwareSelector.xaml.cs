@@ -173,8 +173,8 @@ namespace WinUIShared.Controls
         public static readonly Dictionary<GpuVendor, string[]> Presets = new()
         {
             { GpuVendor.None, ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo"] },
-            //{ GPUVendor.Nvidia, ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10"] },
-            { GpuVendor.Nvidia, ["default", "slow", "medium", "fast", "hp", "hq", "bd", "ll", "llhq", "llhp", "lossless", "losslessh"] },
+            //{ GPUVendor.Nvidia, ["p1", "p2", "p3", "p4", "p5", "p6", "p7"] },
+            { GpuVendor.Nvidia, ["default", "slow", "medium", "fast", "hp", "hq", "bd", "ll", "llhq", "llhp", "lossless", "losslesshp"] },
             { GpuVendor.Amd, ["speed", "balanced", "quality"] },
             { GpuVendor.Intel, ["veryfast", "fast", "medium", "slow", "veryslow"] }
         };
