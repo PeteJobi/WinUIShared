@@ -79,7 +79,7 @@ namespace WinUIShared.Helpers
             }
         }
 
-        public async Task Cancel()
+        public virtual async Task Cancel()
         {
             if (currentProcess == null) return;
             currentProcess.Kill();
