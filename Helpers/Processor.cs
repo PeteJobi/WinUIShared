@@ -165,29 +165,6 @@ namespace WinUIShared.Helpers
             return success;
         }
 
-        public async Task<List<GpuInfo>> GetGpUs()
-        {
-            var gpuList = new List<GpuInfo>();
-            await StartProcess("powershell", "-NoProfile -Command \"Get-CimInstance Win32_VideoController | ForEach-Object { \\\"$($_.Caption);$($_.DeviceID);$($_.AdapterCompatibility)\\\" }\"", (sender, args) =>
-            {
-                if (string.IsNullOrWhiteSpace(args.Data)) return;
-                Debug.WriteLine(args.Data);
-                var line = args.Data.Split(';');
-                if(line.Length != 3) return;
-                if (!int.TryParse(line[1]["VideoController".Length..], out var deviceId)) return;
-                gpuList.Add(new GpuInfo(line[0], deviceId - 1, GetGpuVendor(line[2])));
-            }, null);
-            return gpuList;
-
-            static GpuVendor GetGpuVendor(string adapterCompatibility)
-            {
-                if (adapterCompatibility.Contains("NVIDIA")) return GpuVendor.Nvidia;
-                if (adapterCompatibility.Contains("AMD") || adapterCompatibility.Contains("Advanced Micro Devices")) return GpuVendor.Amd;
-                if (adapterCompatibility.Contains("Intel")) return GpuVendor.Intel;
-                return GpuVendor.None;
-            }
-        }
-
         public void EnableHardwareAccelParams(GpuInfo gpuInfo)
         {
             this.gpuInfo = gpuInfo;
