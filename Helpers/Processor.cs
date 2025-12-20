@@ -227,6 +227,11 @@ namespace WinUIShared.Helpers
             };
         }
 
+        protected Task<bool> StartFfmpegProcess(string arguments)
+        {
+            return StartFfmpegProcess(arguments, null);
+        }
+
         protected Task<bool> StartFfmpegProcess(string arguments, DataReceivedEventHandler errorEventHandler)
         {
             return StartProcess(ffmpegPath, $"-y {arguments}", null, errorEventHandler);
