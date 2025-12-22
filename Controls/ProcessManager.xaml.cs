@@ -70,9 +70,6 @@ namespace WinUIShared.Controls
         private static void OnStateChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var manager = (ProcessManager)d;
-            //pp.OnPropertyChanged(nameof(BeforeOperation));
-            //pp.OnPropertyChanged(nameof(DuringOperation));
-            //pp.OnPropertyChanged(nameof(AfterOperation));
             manager.StateChanged?.Invoke(manager, manager.State);
         }
 

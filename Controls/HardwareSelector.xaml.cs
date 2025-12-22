@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using WinUIShared.Helpers;
@@ -14,18 +15,6 @@ namespace WinUIShared.Controls
     {
         private ViewModel viewModel = new();
         private GpuInfo? lastSelectedGpu;
-
-        public static readonly DependencyProperty ProcessorProperty = DependencyProperty.Register(
-            nameof(Processor),
-            typeof(Processor),
-            typeof(HardwareSelector),
-            new PropertyMetadata(null, OnProcessorChanged));
-
-        public Processor Processor
-        {
-            get => (Processor)GetValue(ProcessorProperty);
-            set => SetValue(ProcessorProperty, value);
-        }
 
         public static readonly DependencyProperty SelectedGpuProperty = DependencyProperty.Register(
             nameof(SelectedGpu),
@@ -44,18 +33,49 @@ namespace WinUIShared.Controls
             InitializeComponent();
         }
 
-        private static async void OnProcessorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private async void HardwareSelector_OnLoaded(object sender, RoutedEventArgs e)
         {
-            var selector = (HardwareSelector)d;
-            if (selector.Processor == null) return;
-            var gpuList = await selector.Processor.GetGpUs();
-            selector.viewModel.Gpus = new ObservableCollection<GpuInfo>(gpuList);
-            if(selector.SelectedGpu != null) OnSelectedGPUChanged(d, e);
+            var gpuList = new List<GpuInfo>();
+            Process process = new()
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = "powershell",
+                    Arguments = "-NoProfile -Command \"Get-CimInstance Win32_VideoController | ForEach-Object { \\\"$($_.Caption);$($_.DeviceID);$($_.AdapterCompatibility)\\\" }\"",
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                },
+                EnableRaisingEvents = true
+            };
+            process.OutputDataReceived += (_, args) =>
+            {
+                if (string.IsNullOrWhiteSpace(args.Data)) return;
+                Debug.WriteLine(args.Data);
+                var line = args.Data.Split(';');
+                if (line.Length != 3) return;
+                if (!int.TryParse(line[1]["VideoController".Length..], out var deviceId)) return;
+                gpuList.Add(new GpuInfo(line[0], deviceId - 1, GetGpuVendor(line[2])));
+            };
+            process.Start();
+            process.BeginOutputReadLine();
+            await process.WaitForExitAsync();
+            process.Dispose();
+            lastSelectedGpu = SelectedGpu;
+            viewModel.Gpus = new ObservableCollection<GpuInfo>(gpuList);
+            if(SelectedGpu != lastSelectedGpu) SelectedGpu = lastSelectedGpu;
+            else if(SelectedGpu != null) OnSelectedGPUChanged(this);
+
+            static GpuVendor GetGpuVendor(string adapterCompatibility)
+            {
+                if (adapterCompatibility.Contains("NVIDIA")) return GpuVendor.Nvidia;
+                if (adapterCompatibility.Contains("AMD") || adapterCompatibility.Contains("Advanced Micro Devices")) return GpuVendor.Amd;
+                if (adapterCompatibility.Contains("Intel")) return GpuVendor.Intel;
+                return GpuVendor.None;
+            }
         }
 
-        private static void OnSelectedGPUChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnSelectedGPUChanged(HardwareSelector selector)
         {
-            var selector = (HardwareSelector)d;
             if (selector.SelectedGpu == null)
             {
                 selector.UseHardwareAccel.IsChecked = false;
@@ -78,6 +98,8 @@ namespace WinUIShared.Controls
             }
             else selector.SelectedGpu = null;
         }
+
+        private static void OnSelectedGPUChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) => OnSelectedGPUChanged((HardwareSelector)d);
 
         private void OnChecked(object sender, RoutedEventArgs e)
         {
@@ -173,8 +195,8 @@ namespace WinUIShared.Controls
         public static readonly Dictionary<GpuVendor, string[]> Presets = new()
         {
             { GpuVendor.None, ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo"] },
-            //{ GPUVendor.Nvidia, ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10"] },
-            { GpuVendor.Nvidia, ["default", "slow", "medium", "fast", "hp", "hq", "bd", "ll", "llhq", "llhp", "lossless", "losslessh"] },
+            //{ GPUVendor.Nvidia, ["p1", "p2", "p3", "p4", "p5", "p6", "p7"] },
+            { GpuVendor.Nvidia, ["default", "slow", "medium", "fast", "hp", "hq", "bd", "ll", "llhq", "llhp", "lossless", "losslesshp"] },
             { GpuVendor.Amd, ["speed", "balanced", "quality"] },
             { GpuVendor.Intel, ["veryfast", "fast", "medium", "slow", "veryslow"] }
         };
