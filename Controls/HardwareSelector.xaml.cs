@@ -147,7 +147,7 @@ namespace WinUIShared.Controls
             return gpuInfo?.Vendor switch
             {
                 GpuVendor.Nvidia => $"-rc vbr -b:v 0 -cq {quality}",
-                GpuVendor.Amd => $"-qp_i {quality} -qp_p {quality} -qp_b {quality}",
+                GpuVendor.Amd => $"-rc cqp -qp {quality}",
                 GpuVendor.Intel => $"-rc icq -global_quality {quality}",
                 _ => $"-crf {quality}"
             };
