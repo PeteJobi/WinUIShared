@@ -148,6 +148,8 @@ namespace WinUIShared.Helpers
                     CreateNoWindow = true,
                     RedirectStandardError = true,
                     RedirectStandardOutput = true,
+                    StandardOutputEncoding = Encoding.Default,
+                    StandardErrorEncoding = Encoding.Default,
                 },
                 EnableRaisingEvents = true
             };
