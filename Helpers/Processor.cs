@@ -137,7 +137,7 @@ namespace WinUIShared.Helpers
             this.error = error ?? (_ => { });
         }
 
-        protected async Task<bool> StartProcess(string processFileName, string arguments, DataReceivedEventHandler? outputEventHandler, DataReceivedEventHandler? errorEventHandler)
+        protected async Task<bool> StartProcess(string processFileName, string arguments, DataReceivedEventHandler? outputEventHandler, DataReceivedEventHandler? errorEventHandler, Func<Process, Task>? intermediateHandler = null)
         {
             Process process = new()
             {
@@ -146,8 +146,10 @@ namespace WinUIShared.Helpers
                     FileName = processFileName,
                     Arguments = arguments,
                     CreateNoWindow = true,
-                    RedirectStandardError = true,
+                    RedirectStandardInput = true,
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    StandardInputEncoding = Encoding.Default,
                     StandardOutputEncoding = Encoding.Default,
                     StandardErrorEncoding = Encoding.Default,
                 },
@@ -160,6 +162,8 @@ namespace WinUIShared.Helpers
             process.BeginOutputReadLine();
             hasBeenKilled = false;
             currentProcess = process;
+            if(intermediateHandler != null) await intermediateHandler(process);
+            process.StandardInput.Close();
             await process.WaitForExitAsync();
             var success = process.ExitCode == 0;
             process.Dispose();
