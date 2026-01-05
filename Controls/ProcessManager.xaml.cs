@@ -130,30 +130,41 @@ namespace WinUIShared.Controls
 
         public async Task<string?> StartProcess(Task processTask)
         {
+            return (await StartProcess(NonGenericToGeneric())).Item1;
+
+            async Task<object?> NonGenericToGeneric()
+            {
+                await processTask;
+                return null;
+            }
+        }
+
+        public async Task<(string?, T?)> StartProcess<T>(Task<T> processTask)
+        {
             SetupProcess();
 
             try
             {
-                await processTask;
+                var result = await processTask;
 
-                if (State == OperationState.BeforeOperation) return null; //Canceled
+                if (State == OperationState.BeforeOperation) return (null, default); //Canceled
                 if (processFailed)
                 {
                     State = OperationState.BeforeOperation;
                     await ErrorAction(processFailedMessage);
                     await Processor.Cancel();
-                    return null;
+                    return (null, default);
                 }
 
                 State = OperationState.AfterOperation;
                 ProcessProgress.RightTextPrimary = "Done";
-                return Processor.GetFile();
+                return (Processor.GetFile(), result);
             }
             catch (Exception ex)
             {
                 await ErrorAction(ex.Message);
                 State = OperationState.BeforeOperation;
-                return null;
+                return (null, default);
             }
 
             async Task ErrorAction(string message)
