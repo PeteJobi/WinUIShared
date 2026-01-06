@@ -31,6 +31,7 @@ namespace WinUIShared.Helpers
         protected IProgress<double> progressSecondary = defaultProgressValueReporter;
         protected Action<string> error = _ => { };
         protected GpuInfo? gpuInfo;
+        protected bool disableHardwareDecoding;
 
         public bool IsAudio(string mediaPath)
         {
@@ -181,6 +182,8 @@ namespace WinUIShared.Helpers
             gpuInfo = null;
         }
 
+        public void EnableHardwareDecoding(bool enable) => disableHardwareDecoding = !enable;
+
         public delegate void ProgressEventHandler(double progressPercent, TimeSpan currentTime, TimeSpan duration, int currentFrame);
         private DataReceivedEventHandler ProgressToDataReceivedEventHandler(ProgressEventHandler progressHandler, Action<string>? lineWatcher)
         {
@@ -227,14 +230,14 @@ namespace WinUIShared.Helpers
 
         protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, string argumentsBeforeInput, string argumentsAfterInput, DataReceivedEventHandler errorEventHandler)
         {
-            var inputParams = string.Join(" ", inputs.Select(i => GpuInfo.InputParams(gpuInfo, i)));
+            var inputParams = string.Join(" ", inputs.Select(i => GpuInfo.InputParams(gpuInfo, i, disableHardwareDecoding)));
             return StartFfmpegProcess($"{argumentsBeforeInput} {inputParams} {argumentsAfterInput} \"{output}\"", errorEventHandler);
         }
 
         protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, string argumentsBeforeInput, string argumentsAfterInput,
             ProgressEventHandler progressHandler, Action<string>? lineWatcher = null)
         {
-            var inputParams = string.Join(" ", inputs.Select(i => GpuInfo.InputParams(gpuInfo, i)));
+            var inputParams = string.Join(" ", inputs.Select(i => GpuInfo.InputParams(gpuInfo, i, disableHardwareDecoding)));
             return StartFfmpegProcess($"{argumentsBeforeInput} {inputParams} {argumentsAfterInput} \"{output}\"", ProgressToDataReceivedEventHandler(progressHandler, lineWatcher));
         }
 
