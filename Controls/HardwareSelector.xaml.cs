@@ -152,14 +152,14 @@ namespace WinUIShared.Controls
 
         public override string ToString() => Name;
 
-        public static string InputParams(GpuInfo? gpuInfo, string input)
+        public static string DecodingParams(GpuInfo? gpuInfo)
         {
             return gpuInfo?.Vendor switch
             {
-                GpuVendor.Nvidia => $"-hwaccel cuda -hwaccel_output_format cuda -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
-                GpuVendor.Amd => $"-hwaccel d3d11va -hwaccel_output_format d3d11 -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
-                GpuVendor.Intel => $"-hwaccel qsv -hwaccel_output_format qsv -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
-                _ => $"-i \"{input}\""
+                GpuVendor.Nvidia => $"-init_hw_device cuda=cu:{gpuInfo.DeviceId} -filter_hw_device cu -hwaccel cuda -hwaccel_output_format cuda -hwaccel_device {gpuInfo.DeviceId} ",
+                GpuVendor.Amd => $"-init_hw_device d3d11va=amd:{gpuInfo.DeviceId} -filter_hw_device amd -hwaccel d3d11va -hwaccel_output_format d3d11 -hwaccel_device {gpuInfo.DeviceId} ",
+                GpuVendor.Intel => $"-init_hw_device qsv=intel:{gpuInfo.DeviceId} -filter_hw_device intel -hwaccel qsv -hwaccel_output_format qsv -hwaccel_device {gpuInfo.DeviceId} ",
+                _ => string.Empty
             };
         }
 
@@ -183,13 +183,28 @@ namespace WinUIShared.Controls
             return $"-{(gpuInfo?.Vendor == GpuVendor.Amd ? "quality" : "preset")} {presets[presetIndex]}";
         }
 
-        public static readonly Dictionary<GpuVendor, string> EncodingParamsDict = new()
+        public static (string hwDownArgs, string swDownArgs) FilterParams(GpuInfo? gpuInfo)
         {
-            { GpuVendor.None, "libx265" },
-            { GpuVendor.Nvidia, "hevc_nvenc" },
-            { GpuVendor.Amd, "hevc_amf" },
-            { GpuVendor.Intel, "hevc_qsv" }
-        };
+            return gpuInfo?.Vendor switch
+            {
+                GpuVendor.Nvidia => ("hwdownload,format=nv12,", ",hwupload_cuda"),
+                GpuVendor.Amd => ("hwdownload,format=nv12,", ",format=nv12,hwupload=derive_device=d3d11va"),
+                GpuVendor.Intel => ("hwdownload,format=nv12,", ",format=nv12,hwupload=derive_device=qsv"),
+                _ => (string.Empty, string.Empty)
+            };
+        }
+
+        public static string EncodingParams(GpuInfo? gpuInfo)
+        {
+            return gpuInfo?.Vendor switch
+            {
+                GpuVendor.Nvidia => $"hevc_nvenc -gpu {gpuInfo.DeviceId}",
+                GpuVendor.Amd => $"hevc_amf",
+                //GpuVendor.Amd => $"hevc_amf -device {gpuInfo.DeviceId}",
+                GpuVendor.Intel => $"hevc_qsv -qsv_device {gpuInfo.DeviceId}",
+                _ => "libx265"
+            };
+        }
 
         public static readonly Dictionary<GpuVendor, string[]> Presets = new()
         {

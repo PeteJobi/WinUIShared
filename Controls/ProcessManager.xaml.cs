@@ -14,7 +14,7 @@ namespace WinUIShared.Controls
         public static readonly DependencyProperty StateProperty = DependencyProperty.Register(
             nameof(State),
             typeof(OperationState),
-            typeof(ProcessProgress),
+            typeof(ProcessManager),
             new PropertyMetadata(OperationState.BeforeOperation, OnStateChanged));
         public OperationState State
         {
@@ -26,7 +26,7 @@ namespace WinUIShared.Controls
         public static readonly DependencyProperty ProcessorProperty = DependencyProperty.Register(
             nameof(Processor),
             typeof(Processor),
-            typeof(ProcessProgress),
+            typeof(ProcessManager),
             new PropertyMetadata(null, OnProcessorChanged));
 
         public Processor Processor
