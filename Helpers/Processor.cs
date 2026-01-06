@@ -54,6 +54,13 @@ namespace WinUIShared.Helpers
             return true;
         }
 
+        protected bool CheckConversionFailed(string line)
+        {
+            if (line != "Conversion failed!") return false;
+            error("Process failed");
+            return true;
+        }
+
         protected bool HasBeenKilled()
         {
             if (!hasBeenKilled) return false;
@@ -193,6 +200,7 @@ namespace WinUIShared.Helpers
                 Debug.WriteLine(args.Data);
                 lineWatcher?.Invoke(args.Data);
                 if (CheckFileNameLongError(args.Data)) return;
+                if (CheckConversionFailed(args.Data)) return;
                 if (duration == TimeSpan.MinValue)
                 {
                     var matchCollection = Regex.Matches(args.Data, @"\s*Duration:\s(\d{2}:\d{2}:\d{2}\.\d{2}).+");
