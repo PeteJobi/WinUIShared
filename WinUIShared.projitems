@@ -9,6 +9,7 @@
     <Import_RootNamespace>WinUIShared</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\ComboBoxEx.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)controls\HardwareSelector.xaml.cs">
       <DependentUpon>HardwareSelector.xaml</DependentUpon>
     </Compile>
@@ -40,8 +41,5 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="$(MSBuildThisFileDirectory)Controls\" />
   </ItemGroup>
 </Project>
