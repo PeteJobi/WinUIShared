@@ -153,13 +153,13 @@ namespace WinUIShared.Controls
 
         public override string ToString() => Name;
 
-        public static string InputParams(GpuInfo? gpuInfo, string input)
+        public static string InputParams(GpuInfo? gpuInfo, string input, bool disableDecoding)
         {
             return gpuInfo?.Vendor switch
             {
-                GpuVendor.Nvidia => $"-hwaccel cuda -hwaccel_output_format cuda -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
-                GpuVendor.Amd => $"-hwaccel d3d11va -hwaccel_output_format d3d11 -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
-                GpuVendor.Intel => $"-hwaccel qsv -hwaccel_output_format qsv -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
+                GpuVendor.Nvidia =>  $"{(disableDecoding ? "" : "-hwaccel cuda ")}-hwaccel_output_format cuda -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
+                GpuVendor.Amd =>  $"{(disableDecoding ? "" : "-hwaccel d3d11va ")}-hwaccel_output_format d3d11 -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
+                GpuVendor.Intel => $"{(disableDecoding ? "" : "-hwaccel qsv ")}-hwaccel_output_format qsv -hwaccel_device {gpuInfo.DeviceId} -i \"{input}\"",
                 _ => $"-i \"{input}\""
             };
         }
