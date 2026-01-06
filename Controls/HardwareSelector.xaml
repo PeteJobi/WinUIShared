@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:converters="using:CommunityToolkit.WinUI.Converters"
+    xmlns:controls="using:WinUIShared.Controls"
     mc:Ignorable="d" Loaded="HardwareSelector_OnLoaded">
 
     <UserControl.Resources>
@@ -19,7 +20,7 @@
         <CheckBox Name="UseHardwareAccel" Checked="OnChecked" Unchecked="OnUnchecked">
             <TextBlock TextTrimming="CharacterEllipsis">Hardware acceleration</TextBlock>
         </CheckBox>
-        <ComboBox Grid.Column="1" ItemsSource="{x:Bind viewModel.Gpus, Mode=OneWay}" HorizontalAlignment="Center" Margin="10,0,0,0"
+        <controls:ComboBoxEx Grid.Column="1" ItemsSource="{x:Bind viewModel.Gpus, Mode=OneWay}" HorizontalAlignment="Center" Margin="10,0,0,0"
                   SelectedItem="{x:Bind SelectedGpu, Mode=TwoWay}" Visibility="{x:Bind UseHardwareAccel.IsChecked, Mode=OneWay}"/>
     </Grid>
 
