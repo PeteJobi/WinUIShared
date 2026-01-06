@@ -207,8 +207,7 @@ namespace WinUIShared.Helpers
                 if (duration == TimeSpan.MinValue)
                 {
                     var matchCollection = Regex.Matches(args.Data, @"\s*Duration:\s(\d{2}:\d{2}:\d{2}\.\d{2}).+");
-                    if (matchCollection.Count == 0) return;
-                    duration = TimeSpan.Parse(matchCollection[0].Groups[1].Value);
+                    if (matchCollection.Count != 0) duration = TimeSpan.Parse(matchCollection[0].Groups[1].Value);
                 }
                 if (!args.Data.StartsWith("frame")) return;
                 if (!CheckNoSpaceDuringProcess(args.Data))
@@ -240,14 +239,14 @@ namespace WinUIShared.Helpers
 
         protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, string argumentsBeforeInput, string argumentsAfterInput, DataReceivedEventHandler errorEventHandler, IntermediateProcessHandler? intermediateHandler = null)
         {
-            var inputParams = string.Join(" ", inputs.Select(i => GpuInfo.InputParams(gpuInfo, i, disableHardwareDecoding)));
+            var inputParams = string.Join(" ", inputs.Select(i => $"{(disableHardwareDecoding ? string.Empty : GpuInfo.DecodingParams(gpuInfo))}-i \"{i}\""));
             return StartFfmpegProcess($"{argumentsBeforeInput} {inputParams} {argumentsAfterInput} \"{output}\"", errorEventHandler, intermediateHandler);
         }
 
         protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, string argumentsBeforeInput, string argumentsAfterInput,
             ProgressEventHandler progressHandler, LineWatchHandler? lineWatcher = null, IntermediateProcessHandler? intermediateHandler = null)
         {
-            var inputParams = string.Join(" ", inputs.Select(i => GpuInfo.InputParams(gpuInfo, i, disableHardwareDecoding)));
+            var inputParams = string.Join(" ", inputs.Select(i => $"{(disableHardwareDecoding ? string.Empty : GpuInfo.DecodingParams(gpuInfo))}-i \"{i}\""));
             return StartFfmpegProcess($"{argumentsBeforeInput} {inputParams} {argumentsAfterInput} \"{output}\"", ProgressToDataReceivedEventHandler(progressHandler, lineWatcher), intermediateHandler);
         }
 
@@ -262,7 +261,7 @@ namespace WinUIShared.Helpers
         {
             var threadsParam = gpuInfo == null ? string.Empty : "-threads 1"; //Will limit CPU crop/scale
             var fpsModeParam = gpuInfo != null ? string.Empty : "-fps_mode passthrough";
-            var encodingParams = $"-c:v {GpuInfo.EncodingParamsDict[gpuInfo?.Vendor ?? GpuVendor.None]} -c:a copy";
+            var encodingParams = $"-c:v {GpuInfo.EncodingParams(gpuInfo)} -c:a copy";
             var qualityParams = GpuInfo.QualityParams(gpuInfo, quality);
             var presetParams = preset == null ? string.Empty : $"-{(gpuInfo?.Vendor == GpuVendor.Amd ? "quality" : "preset")} {preset}";
             return StartFfmpegTranscodingProcess(inputs, output, $"{threadsParam} {extraArgumentsBeforeInput}", $"{encodingParams} {fpsModeParam} {qualityParams} {presetParams} {extraArgumentsAfterInput}", errorEventHandler, intermediateHandler);
