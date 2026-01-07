@@ -1,5 +1,8 @@
-﻿using Microsoft.UI.Xaml.Controls;
+﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Windows.Foundation;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using WinUIShared.Helpers;
 
 namespace WinUIShared.Controls
 {
@@ -7,6 +10,7 @@ namespace WinUIShared.Controls
     public class ComboBoxEx : ComboBox
     {
         double _cachedWidth;
+        private bool cornerRadiusSet;
 
         protected override void OnDropDownOpened(object e)
         {
@@ -27,7 +31,22 @@ namespace WinUIShared.Controls
             var baseSize = base.MeasureOverride(availableSize);
 
             if (baseSize.Width != 64)
+            {
                 _cachedWidth = baseSize.Width;
+            }
+
+            if (!cornerRadiusSet)
+            {
+                if(CornerRadius == default) CornerRadius = (CornerRadius)Application.Current.Resources["ControlCornerRadius"];
+                var popup = this.FindChildElementByName("Popup") as Popup;
+                if (popup == null) return baseSize;
+                var popupBorder = popup.Child.FindChildElementByName("PopupBorder") as Border;
+                if(popupBorder != null)
+                {
+                    popupBorder.CornerRadius = CornerRadius;
+                    cornerRadiusSet = true;
+                }
+            }
 
             return baseSize;
         }
