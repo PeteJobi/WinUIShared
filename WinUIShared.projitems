@@ -23,6 +23,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\Converters.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\Processor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\RelayCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\Utility.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="$(MSBuildThisFileDirectory)controls\HardwareSelector.xaml">
