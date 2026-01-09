@@ -354,5 +354,22 @@ namespace WinUIShared.Helpers
                 CloseHandle(pOpenThread);
             }
         }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+        static extern uint GetShortPathName(string lpszLongPath, StringBuilder lpszShortPath, uint cchBuffer);
+
+        public static string GetSafePath(string path)
+        {
+            // If the path is short enough, return as-is
+            if (path.Length < 260) return path;
+
+            // Otherwise, try to get the 8.3 short path
+            var shortPath = new StringBuilder(260);
+            const string prefix = @"\\?\";
+            var result = GetShortPathName(prefix + path, shortPath, (uint)shortPath.Capacity);
+
+            if (result > 0) return shortPath.ToString()[prefix.Length..];
+            return path; // fallback if 8.3 not available
+        }
     }
 }
