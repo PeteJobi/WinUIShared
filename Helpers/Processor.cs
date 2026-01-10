@@ -101,10 +101,11 @@ namespace WinUIShared.Helpers
 
         public void ViewFile()
         {
+            if (outputFile == null) return;
             var info = new ProcessStartInfo
             {
                 FileName = "explorer",
-                Arguments = $"/e, /select, \"{outputFile}\""
+                Arguments = $"/e, /select, \"{GetSafePath(outputFile)}\""
             };
             Process.Start(info);
         }
@@ -192,7 +193,6 @@ namespace WinUIShared.Helpers
                 if (string.IsNullOrWhiteSpace(args.Data) || hasBeenKilled) return;
                 Debug.WriteLine(args.Data);
                 lineWatcher?.Invoke(args.Data);
-                if (CheckFileNameLongError(args.Data)) return;
                 if (CheckFailureStrings(args.Data)) return;
                 if (duration == TimeSpan.MinValue)
                 {
