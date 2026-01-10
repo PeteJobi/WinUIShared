@@ -17,8 +17,6 @@ namespace WinUIShared.Helpers
         protected bool hasBeenKilled;
         protected const double ProgressMax = 100d;
         protected string? outputFile;
-        protected const string FileNameLongError =
-            "The source file name is too long. Shorten it to get the total number of characters in the destination directory lower than 256.\n\nDestination directory: ";
         protected static readonly IProgress<string> defaultProgressTextReporter = new Progress<string>(s => { });
         protected static readonly IProgress<double> defaultProgressValueReporter = new Progress<double>(d => { });
         protected IProgress<string> leftTextPrimary = defaultProgressTextReporter;
@@ -44,14 +42,6 @@ namespace WinUIShared.Helpers
             if (!line.EndsWith("No space left on device") && !line.EndsWith("I/O error")) return false;
             Pause();
             error($"Process failed.\nError message: {line}");
-            return true;
-        }
-
-        protected bool CheckFileNameLongError(string line)
-        {
-            const string noSuchDirectory = ": No such file or directory";
-            if (!line.EndsWith(noSuchDirectory)) return false;
-            error(FileNameLongError + line[..^noSuchDirectory.Length]);
             return true;
         }
 
