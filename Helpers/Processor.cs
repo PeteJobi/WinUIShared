@@ -229,8 +229,9 @@ namespace WinUIShared.Helpers
 
         protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, string argumentsBeforeInput, string argumentsAfterInput, DataReceivedEventHandler errorEventHandler, IntermediateProcessHandler? intermediateHandler = null)
         {
-            var inputParams = string.Join(" ", inputs.Select(i => $"{(disableHardwareDecoding ? string.Empty : GpuInfo.DecodingParams(gpuInfo))}-i \"{i}\""));
-            return StartFfmpegProcess($"{argumentsBeforeInput} {inputParams} {argumentsAfterInput} \"{output}\"", errorEventHandler, intermediateHandler);
+            var initParams = disableHardwareDecoding ? string.Empty : GpuInfo.InitializeParams(gpuInfo);
+            var inputParams = string.Join(' ', inputs.Select(i => $"{(disableHardwareDecoding ? string.Empty : GpuInfo.DecodingParams(gpuInfo))}-i \"{i}\""));
+            return StartFfmpegProcess($"{initParams}{argumentsBeforeInput} {inputParams} {argumentsAfterInput} \"{output}\"", errorEventHandler, intermediateHandler);
         }
 
         protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, string argumentsBeforeInput, string argumentsAfterInput,

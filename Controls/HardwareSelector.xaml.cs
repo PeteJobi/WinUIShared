@@ -152,13 +152,24 @@ namespace WinUIShared.Controls
 
         public override string ToString() => Name;
 
+        public static string InitializeParams(GpuInfo? gpuInfo)
+        {
+            return gpuInfo?.Vendor switch
+            {
+                GpuVendor.Nvidia => $"-init_hw_device cuda=cu:{gpuInfo.DeviceId} -filter_hw_device cu ",
+                GpuVendor.Amd => $"-init_hw_device d3d11va=amd:{gpuInfo.DeviceId} -filter_hw_device amd ",
+                GpuVendor.Intel => $"-init_hw_device qsv=intel:{gpuInfo.DeviceId} -filter_hw_device intel ",
+                _ => string.Empty
+            };
+        }
+
         public static string DecodingParams(GpuInfo? gpuInfo)
         {
             return gpuInfo?.Vendor switch
             {
-                GpuVendor.Nvidia => $"-init_hw_device cuda=cu:{gpuInfo.DeviceId} -filter_hw_device cu -hwaccel cuda -hwaccel_output_format cuda -hwaccel_device {gpuInfo.DeviceId} ",
-                GpuVendor.Amd => $"-init_hw_device d3d11va=amd:{gpuInfo.DeviceId} -filter_hw_device amd -hwaccel d3d11va -hwaccel_output_format d3d11 -hwaccel_device {gpuInfo.DeviceId} ",
-                GpuVendor.Intel => $"-init_hw_device qsv=intel:{gpuInfo.DeviceId} -filter_hw_device intel -hwaccel qsv -hwaccel_output_format qsv -hwaccel_device {gpuInfo.DeviceId} ",
+                GpuVendor.Nvidia => $"-hwaccel cuda -hwaccel_output_format cuda -hwaccel_device {gpuInfo.DeviceId} ",
+                GpuVendor.Amd => $"-hwaccel d3d11va -hwaccel_output_format d3d11 -hwaccel_device {gpuInfo.DeviceId} ",
+                GpuVendor.Intel => $"-hwaccel qsv -hwaccel_output_format qsv -hwaccel_device {gpuInfo.DeviceId} ",
                 _ => string.Empty
             };
         }
