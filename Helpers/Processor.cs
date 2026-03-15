@@ -31,6 +31,28 @@ namespace WinUIShared.Helpers
         protected GpuInfo? gpuInfo;
         protected bool disableHardwareDecoding;
 
+        public async Task<string> GetGpuPixelFormat(string videoPath)
+        {
+            string? over8BitDepth = null;
+            var depthGotten = false;
+            await StartFfmpegProcess($"-i \"{videoPath}\"", (sender, args) =>
+            {
+                Debug.WriteLine(args.Data);
+                if (depthGotten || string.IsNullOrWhiteSpace(args.Data) || hasBeenKilled) return;
+                var matchCollection = Regex.Matches(args.Data, @"\s*Stream #\d+:\d+.*?: Video: .+?, yuv420p(?<moreThan8>\d{2}le)?");
+                if (matchCollection.Count == 0) return;
+                over8BitDepth = matchCollection[0].Groups["moreThan8"].Value;
+                depthGotten = true;
+            });
+
+            return over8BitDepth switch
+            {
+                "10le" => "p010le", //10 bit
+                "12le" => "p012le", //12 bit
+                _ => "nv12", //8 bit
+            };
+        }
+
         public static bool IsAudio(string mediaPath)
         {
             var ext = Path.GetExtension(mediaPath).ToLower();

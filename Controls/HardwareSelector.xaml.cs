@@ -194,13 +194,13 @@ namespace WinUIShared.Controls
             return $"-{(gpuInfo?.Vendor == GpuVendor.Amd ? "quality" : "preset")} {presets[presetIndex]}";
         }
 
-        public static (string hwDownArgs, string swDownArgs) FilterParams(GpuInfo? gpuInfo)
+        public static (string hwDownArgs, string swDownArgs) FilterParams(GpuInfo? gpuInfo, string format)
         {
             return gpuInfo?.Vendor switch
             {
-                GpuVendor.Nvidia => ("hwdownload,format=nv12,", ",hwupload_cuda"),
-                GpuVendor.Amd => ("hwdownload,format=nv12,", ",format=nv12,hwupload=derive_device=d3d11va"),
-                GpuVendor.Intel => ("hwdownload,format=nv12,", ",format=nv12,hwupload=derive_device=qsv"),
+                GpuVendor.Nvidia => ($"hwdownload,format={format},", ",hwupload_cuda"),
+                GpuVendor.Amd => ($"hwdownload,format={format},", $",format={format},hwupload=derive_device=d3d11va"),
+                GpuVendor.Intel => ($"hwdownload,format={format},", $",format={format},hwupload=derive_device=qsv"),
                 _ => (string.Empty, string.Empty)
             };
         }
