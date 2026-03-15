@@ -7,11 +7,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using FileLogger;
 using WinUIShared.Controls;
 
 namespace WinUIShared.Helpers
 {
-    public class Processor(string ffmpegPath)
+    public class Processor(string ffmpegPath, IFileLogger logger)
     {
         protected Process? currentProcess;
         protected bool hasBeenKilled;
@@ -30,6 +31,7 @@ namespace WinUIShared.Helpers
         protected Action<string> error = _ => { };
         protected GpuInfo? gpuInfo;
         protected bool disableHardwareDecoding;
+        protected IFileLogger logger = logger;
 
         public async Task<string> GetGpuPixelFormat(string videoPath)
         {
@@ -161,6 +163,7 @@ namespace WinUIShared.Helpers
         public delegate Task IntermediateProcessHandler(Process process);
         protected async Task<bool> StartProcess(string processFileName, string arguments, DataReceivedEventHandler? outputEventHandler, DataReceivedEventHandler? errorEventHandler, IntermediateProcessHandler? intermediateHandler = null)
         {
+            logger.Log(arguments);
             Process process = new()
             {
                 StartInfo = new ProcessStartInfo()
@@ -214,6 +217,7 @@ namespace WinUIShared.Helpers
             {
                 if (string.IsNullOrWhiteSpace(args.Data) || hasBeenKilled) return;
                 Debug.WriteLine(args.Data);
+                logger.Log(args.Data);
                 lineWatcher?.Invoke(args.Data);
                 if (CheckFailureStrings(args.Data)) return;
                 if (duration == TimeSpan.MinValue)
