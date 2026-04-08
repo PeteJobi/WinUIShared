@@ -61,7 +61,7 @@ namespace WinUIShared.Controls
                     GpuVendor.Nvidia => nvidiaCount++,
                     GpuVendor.Intel => intelCount++,
                     _ => deviceId - 1
-            };
+                };
                 gpuList.Add(new GpuInfo(line[0], index, vendor));
             };
             process.Start();
@@ -95,7 +95,7 @@ namespace WinUIShared.Controls
             {
                 if (!gpuList.Contains(selector.SelectedGpu))
                 {
-                    selector.SelectedGpu = gpuList.First(g => g.DeviceId == selector.SelectedGpu.DeviceId);
+                    selector.SelectedGpu = gpuList.First(g => g.Index == selector.SelectedGpu.Index);
                 }
                 else
                 {
@@ -153,10 +153,10 @@ namespace WinUIShared.Controls
         Intel
     }
 
-    public class GpuInfo(string name, int deviceId, GpuVendor vendor)
+    public class GpuInfo(string name, int index, GpuVendor vendor)
     {
         public string Name { get; set; } = name;
-        public int DeviceId { get; set; } = deviceId;
+        public int Index { get; set; } = index;
         public GpuVendor Vendor { get; set; } = vendor;
 
         public override string ToString() => Name;
@@ -165,9 +165,9 @@ namespace WinUIShared.Controls
         {
             return gpuInfo?.Vendor switch
             {
-                GpuVendor.Nvidia => $"-init_hw_device cuda=cu:{gpuInfo.DeviceId} -filter_hw_device cu ",
-                GpuVendor.Amd => $"-init_hw_device d3d11va=amd:{gpuInfo.DeviceId} -filter_hw_device amd ",
-                GpuVendor.Intel => $"-init_hw_device qsv=intel:{gpuInfo.DeviceId} -filter_hw_device intel ",
+                GpuVendor.Nvidia => $"-init_hw_device cuda=cu:{gpuInfo.Index} -filter_hw_device cu ",
+                GpuVendor.Amd => $"-init_hw_device d3d11va=amd:{gpuInfo.Index} -filter_hw_device amd ",
+                GpuVendor.Intel => $"-init_hw_device qsv=intel:{gpuInfo.Index} -filter_hw_device intel ",
                 _ => string.Empty
             };
         }
@@ -176,9 +176,9 @@ namespace WinUIShared.Controls
         {
             return gpuInfo?.Vendor switch
             {
-                GpuVendor.Nvidia => $"-hwaccel cuda -hwaccel_output_format cuda -hwaccel_device {gpuInfo.DeviceId} ",
-                GpuVendor.Amd => $"-hwaccel d3d11va -hwaccel_output_format d3d11 -hwaccel_device {gpuInfo.DeviceId} ",
-                GpuVendor.Intel => $"-hwaccel qsv -hwaccel_output_format qsv -hwaccel_device {gpuInfo.DeviceId} ",
+                GpuVendor.Nvidia => $"-hwaccel cuda -hwaccel_output_format cuda -hwaccel_device {gpuInfo.Index} ",
+                GpuVendor.Amd => $"-hwaccel d3d11va -hwaccel_output_format d3d11 -hwaccel_device {gpuInfo.Index} ",
+                GpuVendor.Intel => $"-hwaccel qsv -hwaccel_output_format qsv -hwaccel_device {gpuInfo.Index} ",
                 _ => string.Empty
             };
         }
@@ -218,10 +218,10 @@ namespace WinUIShared.Controls
         {
             return gpuInfo?.Vendor switch
             {
-                GpuVendor.Nvidia => $"hevc_nvenc -gpu {gpuInfo.DeviceId}",
-                GpuVendor.Amd => $"hevc_amf",
+                GpuVendor.Nvidia => $"hevc_nvenc -gpu {gpuInfo.Index}",
+                GpuVendor.Amd => "hevc_amf",
                 //GpuVendor.Amd => $"hevc_amf -device {gpuInfo.DeviceId}",
-                GpuVendor.Intel => $"hevc_qsv -qsv_device {gpuInfo.DeviceId}",
+                GpuVendor.Intel => $"hevc_qsv -qsv_device {gpuInfo.Index}",
                 _ => "libx265"
             };
         }
