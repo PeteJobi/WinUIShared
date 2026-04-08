@@ -35,6 +35,8 @@ namespace WinUIShared.Controls
         private async void HardwareSelector_OnLoaded(object sender, RoutedEventArgs e)
         {
             var gpuList = new List<GpuInfo>();
+            var nvidiaCount = 0;
+            var intelCount = 0;
             Process process = new()
             {
                 StartInfo = new ProcessStartInfo()
@@ -53,7 +55,14 @@ namespace WinUIShared.Controls
                 var line = args.Data.Split(';');
                 if (line.Length != 3) return;
                 if (!int.TryParse(line[1]["VideoController".Length..], out var deviceId)) return;
-                gpuList.Add(new GpuInfo(line[0], deviceId - 1, GetGpuVendor(line[2])));
+                var vendor = GetGpuVendor(line[2]);
+                var index = vendor switch
+                {
+                    GpuVendor.Nvidia => nvidiaCount++,
+                    GpuVendor.Intel => intelCount++,
+                    _ => deviceId - 1
+            };
+                gpuList.Add(new GpuInfo(line[0], index, vendor));
             };
             process.Start();
             process.BeginOutputReadLine();
