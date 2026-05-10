@@ -74,4 +74,31 @@ namespace WinUIShared.Helpers
             throw new NotImplementedException();
         }
     }
+
+    public class StringEqualityConverter : IValueConverter
+    {
+        public string CompareTo { get; set; }
+        public object Equal { get; set; }
+        public object NotEqual { get; set; }
+
+        public object Convert(object value, Type targetType, object parameter, string language)
+        {
+            if (value is string stringValue)
+            {
+                return (stringValue == CompareTo) == !bool.Parse(parameter?.ToString() ?? "false") ? Equal : NotEqual;
+            }
+            return NotEqual;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
+    }
+
+    public class StringEqualityVisibilityConverter : StringEqualityConverter
+    {
+        public StringEqualityVisibilityConverter()
+        {
+            Equal = Visibility.Visible;
+            NotEqual = Visibility.Collapsed;
+        }
+    }
 }
