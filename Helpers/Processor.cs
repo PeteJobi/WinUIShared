@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FileLogger;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -7,7 +8,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using FileLogger;
 using WinUIShared.Controls;
 
 namespace WinUIShared.Helpers
@@ -30,7 +30,6 @@ namespace WinUIShared.Helpers
         protected IProgress<double> progressSecondary = defaultProgressValueReporter;
         protected Action<string> error = _ => { };
         protected GpuInfo? gpuInfo;
-        protected bool disableHardwareDecoding;
         protected IFileLogger logger = logger;
 
         public async Task<string> GetGpuPixelFormat(string videoPath)
@@ -166,7 +165,7 @@ namespace WinUIShared.Helpers
             logger.Log(arguments);
             Process process = new()
             {
-                StartInfo = new ProcessStartInfo()
+                StartInfo = new ProcessStartInfo
                 {
                     FileName = processFileName,
                     Arguments = arguments,
@@ -205,8 +204,6 @@ namespace WinUIShared.Helpers
         {
             gpuInfo = null;
         }
-
-        public void EnableHardwareDecoding(bool enable) => disableHardwareDecoding = !enable;
 
         public delegate void ProgressEventHandler(double progressPercent, TimeSpan currentTime, TimeSpan duration, int currentFrame);
         public delegate void LineWatchHandler(string line);
@@ -248,78 +245,13 @@ namespace WinUIShared.Helpers
             return StartProcess(ffmpegPath, $"-y {arguments}", null, errorEventHandler, intermediateHandler);
         }
 
-        protected Task<bool> StartFfmpegProcess(string arguments, ProgressEventHandler progressHandler, LineWatchHandler? lineWatcher = null, IntermediateProcessHandler? intermediateHandler = null)
-        {
-            return StartFfmpegProcess(arguments, ProgressToDataReceivedEventHandler(progressHandler, lineWatcher), intermediateHandler);
-        }
+        protected FfmpegProcessBuilder Ffmpeg() => new(this, ffmpegPath);
 
-        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, string argumentsBeforeInput, string argumentsAfterInput, DataReceivedEventHandler errorEventHandler, IntermediateProcessHandler? intermediateHandler = null)
-        {
-            var initParams = disableHardwareDecoding ? string.Empty : GpuInfo.InitializeParams(gpuInfo);
-            var inputParams = string.Join(' ', inputs.Select(i => $"{(disableHardwareDecoding ? string.Empty : GpuInfo.DecodingParams(gpuInfo))}-i \"{i}\""));
-            return StartFfmpegProcess($"{initParams}{argumentsBeforeInput} {inputParams} {argumentsAfterInput} \"{output}\"", errorEventHandler, intermediateHandler);
-        }
-
-        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, string argumentsBeforeInput, string argumentsAfterInput,
-            ProgressEventHandler progressHandler, LineWatchHandler? lineWatcher = null, IntermediateProcessHandler? intermediateHandler = null)
-        {
-            var inputParams = string.Join(" ", inputs.Select(i => $"{(disableHardwareDecoding ? string.Empty : GpuInfo.DecodingParams(gpuInfo))}-i \"{i}\""));
-            return StartFfmpegProcess($"{argumentsBeforeInput} {inputParams} {argumentsAfterInput} \"{output}\"", ProgressToDataReceivedEventHandler(progressHandler, lineWatcher), intermediateHandler);
-        }
-
-        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, int quality,
-            string? preset, string extraArgumentsAfterInput, DataReceivedEventHandler errorEventHandler, IntermediateProcessHandler? intermediateHandler = null)
-        {
-            return StartFfmpegTranscodingProcess(inputs, output, quality, preset, string.Empty,
-                extraArgumentsAfterInput, errorEventHandler, intermediateHandler);
-        }
-
-        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, int quality, string? preset, string extraArgumentsBeforeInput, string extraArgumentsAfterInput, DataReceivedEventHandler errorEventHandler, IntermediateProcessHandler? intermediateHandler = null)
-        {
-            var threadsParam = gpuInfo == null ? string.Empty : "-threads 1"; //Will limit CPU crop/scale
-            var fpsModeParam = gpuInfo != null ? string.Empty : "-fps_mode passthrough";
-            var encodingParams = $"-c:v {GpuInfo.EncodingParams(gpuInfo)} -c:a copy";
-            var qualityParams = GpuInfo.QualityParams(gpuInfo, quality);
-            var presetParams = preset == null ? string.Empty : $"-{(gpuInfo?.Vendor == GpuVendor.Amd ? "quality" : "preset")} {preset}";
-            return StartFfmpegTranscodingProcess(inputs, output, $"{threadsParam} {extraArgumentsBeforeInput}", $"{encodingParams} {fpsModeParam} {qualityParams} {presetParams} {extraArgumentsAfterInput}", errorEventHandler, intermediateHandler);
-        }
-
-        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, int quality,
-            string? preset, string extraArgumentsAfterInput, ProgressEventHandler progressHandler, LineWatchHandler? lineWatcher = null, IntermediateProcessHandler? intermediateHandler = null)
-        {
-            return StartFfmpegTranscodingProcess(inputs, output, quality, preset, string.Empty, extraArgumentsAfterInput, progressHandler, lineWatcher, intermediateHandler);
-        }
-
-        protected Task<bool> StartFfmpegTranscodingProcess(IEnumerable<string> inputs, string output, int quality,
-            string? preset, string extraArgumentsBeforeInput, string extraArgumentsAfterInput, ProgressEventHandler progressHandler, LineWatchHandler? lineWatcher = null, IntermediateProcessHandler? intermediateHandler = null)
-        {
-            return StartFfmpegTranscodingProcess(inputs, output, quality, preset, extraArgumentsBeforeInput, extraArgumentsAfterInput, ProgressToDataReceivedEventHandler(progressHandler, lineWatcher), intermediateHandler);
-        }
-
-        protected Task<bool> StartFfmpegTranscodingProcessDefaultQuality(IEnumerable<string> inputs, string output, string extraArgumentsAfterInput, DataReceivedEventHandler errorEventHandler, IntermediateProcessHandler? intermediateHandler = null)
-        {
-            return StartFfmpegTranscodingProcessDefaultQuality(inputs, output, string.Empty, extraArgumentsAfterInput, errorEventHandler, intermediateHandler);
-        }
-
-        protected Task<bool> StartFfmpegTranscodingProcessDefaultQuality(IEnumerable<string> inputs, string output, string extraArgumentsAfterInput, ProgressEventHandler progressHandler, LineWatchHandler? lineWatcher = null, IntermediateProcessHandler? intermediateHandler = null)
-        {
-            return StartFfmpegTranscodingProcessDefaultQuality(inputs, output, string.Empty, extraArgumentsAfterInput, progressHandler, lineWatcher, intermediateHandler);
-        }
-
-        protected Task<bool> StartFfmpegTranscodingProcessDefaultQuality(IEnumerable<string> inputs, string output, string extraArgumentsBeforeInput, string extraArgumentsAfterInput, DataReceivedEventHandler errorEventHandler, IntermediateProcessHandler? intermediateHandler = null)
-        {
-            return StartFfmpegTranscodingProcess(inputs, output, 18, null, extraArgumentsBeforeInput, extraArgumentsAfterInput, errorEventHandler, intermediateHandler);
-        }
-
-        protected Task<bool> StartFfmpegTranscodingProcessDefaultQuality(IEnumerable<string> inputs, string output, string extraArgumentsBeforeInput, string extraArgumentsAfterInput, ProgressEventHandler progressHandler, LineWatchHandler? lineWatcher = null, IntermediateProcessHandler? intermediateHandler = null)
-        {
-            return StartFfmpegTranscodingProcess(inputs, output, 18, null, extraArgumentsBeforeInput, extraArgumentsAfterInput, progressHandler, lineWatcher, intermediateHandler);
-        }
 
         [Flags]
         public enum ThreadAccess
         {
-            SUSPEND_RESUME = (0x0002)
+            SUSPEND_RESUME = 0x0002
         }
 
         [DllImport("kernel32.dll")]
@@ -387,6 +319,220 @@ namespace WinUIShared.Helpers
 
             if (result > 0) return shortPath.ToString()[prefix.Length..];
             return path; // fallback if 8.3 not available
+        }
+
+        public class FfmpegProcessBuilder(Processor processor, string ffmpegPath)
+        {
+            private IEnumerable<string>? _inputPaths;
+            private string? _outputPath;
+            private string? _argumentsBeforeInput;
+            private string? _argumentsAfterInput;
+            private string? _videoFilter;
+            private string? _audioFilter;
+            private string? _complexFilter;
+            private int? _quality;
+            private string? _preset;
+            private string? _videoEncoding;
+            private string? _audioEncoding;
+            private string? _subtitleEncoding;
+            private bool _dontAddGpuParams;
+            private bool _dontAddQualityParams;
+            protected bool _disableHardwareDecoding;
+            protected bool _doPlainProcessing;
+            protected bool _noOutput;
+            private DataReceivedEventHandler? _outputEventHandler;
+            private DataReceivedEventHandler? _errorEventHandler;
+            private IntermediateProcessHandler? _intermediateHandler;
+
+            public async Task<bool> StartTranscodingProcess()
+            {
+                if (_inputPaths?.Any() != true)
+                {
+                    processor.error("No input paths specified.");
+                    return false;
+                }
+                if (!_noOutput && _outputPath == null)
+                {
+                    processor.error("No output path specified.");
+                    return false;
+                }
+
+                string inputParams;
+                string qualityParams;
+                string presetParams;
+                string videoEncodingParam;
+                string audioEncodingParam;
+                var threadsParam = string.Empty;
+                var fpsModeParam = string.Empty;
+                var initParams = string.Empty;
+
+                if (_doPlainProcessing)
+                {
+                    inputParams = string.Join(" ", _inputPaths.Select(i => $"-i \"{i}\""));
+                    qualityParams = _quality == null ? string.Empty : GpuInfo.QualityParams(null, _quality.Value);
+                    presetParams = _preset == null ? string.Empty : $"-preset {_preset}";
+                    videoEncodingParam = _videoEncoding == null ? string.Empty : $"-c:v {_videoEncoding}";
+                    audioEncodingParam = _audioEncoding == null ? string.Empty : $"-c:a {_audioEncoding}";
+                }
+                else
+                {
+                    inputParams = string.Join(" ", _inputPaths.Select(i => $"{(_disableHardwareDecoding ? string.Empty : GpuInfo.DecodingParams(processor.gpuInfo))}-i \"{i}\""));
+                    qualityParams = _dontAddQualityParams ? string.Empty : GpuInfo.QualityParams(processor.gpuInfo, _quality ?? 18);
+                    presetParams = _preset == null ? string.Empty : $"-{(processor.gpuInfo?.Vendor == GpuVendor.Amd ? "quality" : "preset")} {_preset}";
+                    threadsParam = processor.gpuInfo == null || _dontAddGpuParams ? string.Empty : "-threads 1"; //Will limit CPU crop/scale
+                    fpsModeParam = processor.gpuInfo != null || _dontAddGpuParams ? string.Empty : "-fps_mode passthrough";
+                    initParams = _disableHardwareDecoding ? string.Empty : GpuInfo.InitializeParams(processor.gpuInfo);
+                    videoEncodingParam = $"-c:v {_videoEncoding ?? GpuInfo.EncodingParams(processor.gpuInfo)}";
+                    audioEncodingParam = $"-c:a {_audioEncoding ?? "copy"}";
+                }
+                var subtitleEncodingParam = _subtitleEncoding == null ? string.Empty : $"-c:s {_subtitleEncoding}";
+
+                var arguments = $"-y {initParams} {threadsParam} {_argumentsBeforeInput ?? string.Empty} {inputParams} {videoEncodingParam} {audioEncodingParam} {subtitleEncodingParam} {fpsModeParam} {qualityParams} {presetParams} {_argumentsAfterInput ?? string.Empty}" +
+                                $" {(_videoFilter == null ? string.Empty : $"-vf \"{_videoFilter}\" ")}" +
+                                $"{(_audioFilter == null ? string.Empty : $"-af \"{_audioFilter}\" ")}" +
+                                $"{(_complexFilter == null ? string.Empty : $"-filter_complex \"{_complexFilter}\" ")}" +
+                                $"{(_noOutput ? string.Empty : $"\"{_outputPath}\"")}";
+
+                return await processor.StartProcess(ffmpegPath, arguments, _outputEventHandler, _errorEventHandler, _intermediateHandler);
+            }
+
+            public Task<bool> StartPlainProcess()
+            {
+                _doPlainProcessing = true;
+                return StartTranscodingProcess();
+            }
+
+            public FfmpegProcessBuilder Input(string inputPath)
+            {
+                _inputPaths = [inputPath];
+                return this;
+            }
+
+            public FfmpegProcessBuilder Inputs(params string[] inputPaths)
+            {
+                _inputPaths = inputPaths;
+                return this;
+            }
+
+            public FfmpegProcessBuilder Output(string outputPath)
+            {
+                _outputPath = outputPath;
+                return this;
+            }
+
+            public FfmpegProcessBuilder NoOutput()
+            {
+                _noOutput = true;
+                return this;
+            }
+
+            public FfmpegProcessBuilder ArgumentsBeforeInput(string arguments)
+            {
+                _argumentsBeforeInput = arguments;
+                return this;
+            }
+
+            public FfmpegProcessBuilder ArgumentsAfterInput(string arguments)
+            {
+                _argumentsAfterInput = arguments;
+                return this;
+            }
+
+            public FfmpegProcessBuilder VideoFilter(string videoFilter)
+            {
+                _videoFilter = videoFilter;
+                return this;
+            }
+
+            public FfmpegProcessBuilder AudioFilter(string audioFilter)
+            {
+                _audioFilter = audioFilter;
+                return this;
+            }
+
+            public FfmpegProcessBuilder ComplexFilter(string complexFilter)
+            {
+                _complexFilter = complexFilter;
+                return this;
+            }
+
+            public FfmpegProcessBuilder Quality(int quality)
+            {
+                _quality = quality;
+                return this;
+            }
+
+            public FfmpegProcessBuilder DontAddQuality()
+            {
+                _dontAddQualityParams = true;
+                return this;
+            }
+
+            public FfmpegProcessBuilder Preset(string preset)
+            {
+                _preset = preset;
+                return this;
+            }
+
+            public FfmpegProcessBuilder VideoEncoding(string videoEncoding)
+            {
+                _videoEncoding = videoEncoding;
+                return this;
+            }
+
+            public FfmpegProcessBuilder AudioEncoding(string audioEncoding)
+            {
+                _audioEncoding = audioEncoding;
+                return this;
+            }
+
+            public FfmpegProcessBuilder SubtitleEncoding(string subtitleEncoding)
+            {
+                _subtitleEncoding = subtitleEncoding;
+                return this;
+            }
+
+            public FfmpegProcessBuilder DontAddGpuParams()
+            {
+                _dontAddGpuParams = true;
+                return this;
+            }
+
+            public FfmpegProcessBuilder DisableHardwareEncoding(bool disable)
+            {
+                _disableHardwareDecoding = disable;
+                return this;
+            }
+
+            public FfmpegProcessBuilder OutputHandler(DataReceivedEventHandler outputEventHandler)
+            {
+                _outputEventHandler = outputEventHandler;
+                return this;
+            }
+
+            public FfmpegProcessBuilder ErrorHandler(DataReceivedEventHandler errorEventHandler)
+            {
+                _errorEventHandler = errorEventHandler;
+                return this;
+            }
+
+            public FfmpegProcessBuilder ProgressHandler(ProgressEventHandler progressHandler)
+            {
+                _errorEventHandler = processor.ProgressToDataReceivedEventHandler(progressHandler, null);
+                return this;
+            }
+
+            public FfmpegProcessBuilder ProgressHandler(ProgressEventHandler progressHandler, LineWatchHandler lineWatchHandler)
+            {
+                _errorEventHandler = processor.ProgressToDataReceivedEventHandler(progressHandler, lineWatchHandler);
+                return this;
+            }
+
+            public FfmpegProcessBuilder IntermediateHandler(IntermediateProcessHandler intermediateHandler)
+            {
+                _intermediateHandler = intermediateHandler;
+                return this;
+            }
         }
     }
 }
