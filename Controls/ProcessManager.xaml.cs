@@ -179,6 +179,7 @@ namespace WinUIShared.Controls
 
         public async Task<bool> StartSimpleProcess(Func<Task> processTask)
         {
+            processFailed = false;
             await WaitToLoad();
             await processTask();
 
@@ -190,6 +191,7 @@ namespace WinUIShared.Controls
 
         public async Task<T> StartSimpleProcess<T>(Func<Task<T>> processTask)
         {
+            processFailed = false;
             await WaitToLoad();
             var result = await processTask();
 
@@ -203,6 +205,7 @@ namespace WinUIShared.Controls
 
         public async Task<T?> StartSimpleProcessOrReturnDefault<T>(Func<Task<T>> processTask)
         {
+            processFailed = false;
             await WaitToLoad();
             var result = await processTask();
 
