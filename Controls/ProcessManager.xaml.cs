@@ -177,15 +177,15 @@ namespace WinUIShared.Controls
             }
         }
 
-        public async Task StartSimpleProcess(Func<Task> processTask)
+        public async Task<bool> StartSimpleProcess(Func<Task> processTask)
         {
             await WaitToLoad();
             await processTask();
 
-            if (processFailed)
-            {
-                await ErrorAction(processFailedMessage);
-            }
+            if (!processFailed) return true;
+            await ErrorAction(processFailedMessage);
+            return false;
+
         }
 
         public async Task<T> StartSimpleProcess<T>(Func<Task<T>> processTask)
@@ -199,6 +199,16 @@ namespace WinUIShared.Controls
             }
 
             return result;
+        }
+
+        public async Task<T?> StartSimpleProcessOrReturnDefault<T>(Func<Task<T>> processTask)
+        {
+            await WaitToLoad();
+            var result = await processTask();
+
+            if (!processFailed) return result;
+            await ErrorAction(processFailedMessage);
+            return default;
         }
 
         public async Task ShowDialog(string title, string content)
