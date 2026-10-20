@@ -175,14 +175,41 @@ namespace WinUIShared.Controls
                 State = OperationState.BeforeOperation;
                 return null;
             }
+        }
 
-            async Task ErrorAction(string message)
+        public async Task StartSimpleProcess(Func<Task> processTask)
+        {
+            await WaitToLoad();
+            await processTask();
+
+            if (processFailed)
             {
-                ErrorDialog.Title = "Operation failed";
-                ErrorDialog.Content = message;
-                await ErrorDialog.ShowAsync();
+                await ErrorAction(processFailedMessage);
             }
         }
+
+        public async Task<T> StartSimpleProcess<T>(Func<Task<T>> processTask)
+        {
+            await WaitToLoad();
+            var result = await processTask();
+
+            if (processFailed)
+            {
+                await ErrorAction(processFailedMessage);
+            }
+
+            return result;
+        }
+
+        public async Task ShowDialog(string title, string content)
+        {
+            await WaitToLoad();
+            ErrorDialog.Title = title;
+            ErrorDialog.Content = content;
+            await ErrorDialog.ShowAsync();
+        }
+
+        private Task ErrorAction(string message) => ShowDialog("Operation failed", message);
 
         private void SetupProcess()
         {

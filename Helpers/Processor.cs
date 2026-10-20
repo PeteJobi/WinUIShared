@@ -84,11 +84,10 @@ namespace WinUIShared.Helpers
 
         private async Task DeleteOutputFiles()
         {
-            for (int i = 0; i < 5; i++)
+            for (var i = 0; i < 5; i++)
             {
                 try
                 {
-                    Debug.WriteLine($"Trial {i}");
                     if (Directory.Exists(outputFile)) Directory.Delete(outputFile, true);
                     else if (File.Exists(outputFile)) File.Delete(outputFile);
                     return;
