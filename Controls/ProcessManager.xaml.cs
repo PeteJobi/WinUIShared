@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.ComponentModel;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml.Data;
 using WinUIShared.Enums;
@@ -65,6 +66,7 @@ namespace WinUIShared.Controls
         public ProcessManager()
         {
             InitializeComponent();
+            Loaded += ProcessManager_Loaded;
         }
 
         private static void OnStateChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -126,6 +128,24 @@ namespace WinUIShared.Controls
         {
             await Processor.Cancel();
             State = OperationState.BeforeOperation;
+        }
+
+        private readonly CancellationTokenSource _loadTokenSource = new();
+        private void ProcessManager_Loaded(object sender, RoutedEventArgs e)
+        {
+            _loadTokenSource.Cancel();
+        }
+
+        public async Task WaitToLoad()
+        {
+            if(_loadTokenSource.IsCancellationRequested) return;
+            try
+            {
+                await Task.Delay(-1, _loadTokenSource.Token);
+            }
+            catch (TaskCanceledException)
+            {
+            }
         }
 
         public async Task<string?> StartProcess(Task processTask)
