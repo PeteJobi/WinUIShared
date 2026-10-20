@@ -148,13 +148,13 @@ namespace WinUIShared.Controls
             }
         }
 
-        public async Task<string?> StartProcess(Task processTask)
+        public async Task<string?> StartProcess(Func<Task> processTask)
         {
             SetupProcess();
 
             try
             {
-                await processTask;
+                await processTask();
 
                 if (State == OperationState.BeforeOperation) return null; //Canceled
                 if (processFailed)
