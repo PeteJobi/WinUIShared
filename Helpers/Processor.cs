@@ -334,6 +334,7 @@ namespace WinUIShared.Helpers
             private string? _videoEncoding;
             private string? _audioEncoding;
             private string? _subtitleEncoding;
+            private double _fps;
             private bool _dontAddGpuParams;
             private bool _dontAddQualityParams;
             protected bool _disableHardwareDecoding;
@@ -379,12 +380,13 @@ namespace WinUIShared.Helpers
                     qualityParams = _dontAddQualityParams ? string.Empty : GpuInfo.QualityParams(processor.gpuInfo, _quality ?? 18);
                     presetParams = _preset == null ? string.Empty : $"-{(processor.gpuInfo?.Vendor == GpuVendor.Amd ? "quality" : "preset")} {_preset}";
                     threadsParam = processor.gpuInfo == null || _dontAddGpuParams ? string.Empty : "-threads 1"; //Will limit CPU crop/scale
-                    fpsModeParam = processor.gpuInfo != null || _dontAddGpuParams ? string.Empty : "-fps_mode passthrough";
+                    fpsModeParam = processor.gpuInfo != null || _dontAddGpuParams || _fps > 0 ? string.Empty : "-fps_mode passthrough";
                     initParams = _disableHardwareDecoding ? string.Empty : GpuInfo.InitializeParams(processor.gpuInfo);
                     videoEncodingParam = $"-c:v {_videoEncoding ?? GpuInfo.EncodingParams(processor.gpuInfo)}";
-                    audioEncodingParam = $"-c:a {_audioEncoding ?? "copy"}";
+                    audioEncodingParam = _audioEncoding == string.Empty ? string.Empty : $"-c:a {_audioEncoding ?? "copy"}";
                 }
                 var subtitleEncodingParam = _subtitleEncoding == null ? string.Empty : $"-c:s {_subtitleEncoding}";
+                if (_fps > 0) fpsModeParam += $"-r {_fps}";
 
                 var arguments = $"-y {initParams} {threadsParam} {_argumentsBeforeInput ?? string.Empty} {inputParams} {videoEncodingParam} {audioEncodingParam} {subtitleEncodingParam} {fpsModeParam} {qualityParams} {presetParams} {_argumentsAfterInput ?? string.Empty}" +
                                 $" {(_videoFilter == null ? string.Empty : $"-vf \"{_videoFilter}\" ")}" +
@@ -488,6 +490,12 @@ namespace WinUIShared.Helpers
             public FfmpegProcessBuilder SubtitleEncoding(string subtitleEncoding)
             {
                 _subtitleEncoding = subtitleEncoding;
+                return this;
+            }
+
+            public FfmpegProcessBuilder Fps(double fps)
+            {
+                _fps = fps;
                 return this;
             }
 
