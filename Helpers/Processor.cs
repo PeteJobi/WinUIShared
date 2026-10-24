@@ -16,7 +16,7 @@ namespace WinUIShared.Helpers
     {
         protected Process? currentProcess;
         protected bool hasBeenKilled;
-        protected const double ProgressMax = 100d;
+        public const double ProgressMax = 100d;
         protected string? outputFile;
         protected static readonly IProgress<string> defaultProgressTextReporter = new Progress<string>(s => { });
         protected static readonly IProgress<double> defaultProgressValueReporter = new Progress<double>(d => { });

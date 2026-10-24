@@ -1,10 +1,10 @@
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
-using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.UI.Xaml.Data;
 using WinUIShared.Enums;
 using WinUIShared.Helpers;
 
@@ -12,6 +12,11 @@ namespace WinUIShared.Controls
 {
     public sealed partial class ProcessManager : UserControl
     {
+        private IntPtr _hwnd;
+        private bool _displayingTaskbarProgress;
+        private bool processFailed;
+        private string processFailedMessage;
+
         public static readonly DependencyProperty StateProperty = DependencyProperty.Register(
             nameof(State),
             typeof(OperationState),
@@ -60,9 +65,6 @@ namespace WinUIShared.Controls
             set => SetValue(OnlyPrimaryProperty, value);
         }
 
-        private bool processFailed;
-        private string processFailedMessage;
-
         public ProcessManager()
         {
             InitializeComponent();
@@ -75,15 +77,15 @@ namespace WinUIShared.Controls
             manager.StateChanged?.Invoke(manager, manager.State);
         }
 
-        private static void OnProcessorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnProcessorChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
         {
-            var manager = (ProcessManager)d;
+            var manager = (ProcessManager)dependencyObject;
             if (manager.Processor == null) return;
             manager.Processor.SetProgressAndErrorReporters(
                 new Progress<string>(s => manager.ProcessProgress.LeftTextPrimary = s),
                 new Progress<string>(s => manager.ProcessProgress.CenterTextPrimary = s),
                 new Progress<string>(s => manager.ProcessProgress.RightTextPrimary = s),
-                new Progress<double>(d => manager.ProcessProgress.ProgressPrimary = d),
+                new Progress<double>(PrimaryProgress),
                 new Progress<string>(s => manager.ProcessProgress.LeftTextSecondary = s),
                 new Progress<string>(s => manager.ProcessProgress.CenterTextSecondary = s),
                 new Progress<string>(s => manager.ProcessProgress.RightTextSecondary = s),
@@ -94,6 +96,14 @@ namespace WinUIShared.Controls
                     manager.processFailedMessage = s;
                 }
             );
+            return;
+
+            void PrimaryProgress(double value)
+            {
+                manager.ProcessProgress.ProgressPrimary = value;
+                if(manager._displayingTaskbarProgress)
+                    TaskbarProgress.SetValue(manager._hwnd, (ulong)value, (ulong)Processor.ProgressMax);
+            }
         }
 
         private static void OnHardwareSelectorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -112,11 +122,13 @@ namespace WinUIShared.Controls
         private void ProcessProgress_OnPauseRequested(object? sender, EventArgs e)
         {
             Processor.Pause();
+            SetTaskbarProgressState(TaskbarProgress.TaskbarStates.Paused);
         }
 
         private void ProcessProgress_OnResumeRequested(object? sender, EventArgs e)
         {
             Processor.Resume();
+            SetTaskbarProgressState(TaskbarProgress.TaskbarStates.Normal);
         }
 
         private void ProcessProgress_OnViewRequested(object? sender, EventArgs e)
@@ -128,11 +140,14 @@ namespace WinUIShared.Controls
         {
             await Processor.Cancel();
             State = OperationState.BeforeOperation;
+            ResetTaskbarProgressState();
         }
 
         private readonly CancellationTokenSource _loadTokenSource = new();
         private void ProcessManager_Loaded(object sender, RoutedEventArgs e)
         {
+            var windowId = XamlRoot?.ContentIslandEnvironment?.AppWindowId;
+            _hwnd = Win32Interop.GetWindowFromWindowId(windowId.Value);
             _loadTokenSource.Cancel();
         }
 
@@ -152,26 +167,34 @@ namespace WinUIShared.Controls
         {
             SetupProcess();
 
+            var taskbarSetupTokenSource = new CancellationTokenSource();
+            _ = SetupTaskbarProgress(taskbarSetupTokenSource.Token);
             try
             {
                 await processTask();
+                await taskbarSetupTokenSource.CancelAsync();
 
                 if (State == OperationState.BeforeOperation) return null; //Canceled
                 if (processFailed)
                 {
                     State = OperationState.BeforeOperation;
+                    SetTaskbarProgressState(TaskbarProgress.TaskbarStates.Error);
                     await ErrorAction(processFailedMessage);
+                    ResetTaskbarProgressState();
                     await Processor.Cancel();
                     return null;
                 }
 
                 State = OperationState.AfterOperation;
                 ProcessProgress.RightTextPrimary = "Done";
+                ResetTaskbarProgressState();
                 return Processor.GetFile();
             }
             catch (Exception ex)
             {
+                SetTaskbarProgressState(TaskbarProgress.TaskbarStates.Error);
                 await ErrorAction(ex.Message);
+                ResetTaskbarProgressState();
                 State = OperationState.BeforeOperation;
                 return null;
             }
@@ -214,6 +237,34 @@ namespace WinUIShared.Controls
             return default;
         }
 
+        private async Task SetupTaskbarProgress(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(5000, cancellationToken);
+                if (ProcessProgress.ProgressPrimary < 0.1 * Processor.ProgressMax) //If after 5 seconds, the progress is less than 10%, we show the taskbar progress
+                {
+                    TaskbarProgress.SetState(_hwnd, TaskbarProgress.TaskbarStates.Normal);
+                    _displayingTaskbarProgress = true;
+                }
+            }
+            catch (TaskCanceledException)
+            {
+            }
+        }
+
+        private void SetTaskbarProgressState(TaskbarProgress.TaskbarStates state)
+        {
+            if(!_displayingTaskbarProgress) return;
+            TaskbarProgress.SetState(_hwnd, state);
+        }
+
+        private void ResetTaskbarProgressState()
+        {
+            SetTaskbarProgressState(TaskbarProgress.TaskbarStates.NoProgress);
+            _displayingTaskbarProgress = false;
+        }
+
         public async Task ShowDialog(string title, string content)
         {
             await WaitToLoad();
@@ -236,6 +287,80 @@ namespace WinUIShared.Controls
             ProcessProgress.CenterTextSecondary = string.Empty;
             ProcessProgress.RightTextSecondary = string.Empty;
             ProcessProgress.ProgressSecondary = 0;
+        }
+    }
+
+    public static class TaskbarProgress //Class generated by Gemini 3 Auto
+    {
+        public enum TaskbarStates
+        {
+            NoProgress = 0,
+            Indeterminate = 0x1,
+            Normal = 0x2,
+            Error = 0x4,
+            Paused = 0x8
+        }
+
+        [ComImport]
+        [Guid("ea1afb91-9e28-4b86-90e9-9e9f8a5eefaf")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface ITaskbarList3
+        {
+            // ITaskbarList
+            void HrInit();
+            void AddTab(IntPtr hwnd);
+            void DeleteTab(IntPtr hwnd);
+            void ActivateTab(IntPtr hwnd);
+            void SetActiveAlt(IntPtr hwnd);
+
+            // ITaskbarList2
+            void MarkFullscreenWindow(IntPtr hwnd, int fFullscreen);
+
+            // ITaskbarList3
+            void SetProgressValue(IntPtr hwnd, ulong ullCompleted, ulong ullTotal);
+            void SetProgressState(IntPtr hwnd, TaskbarStates tbpFlags);
+            //void RegisterTab(IntPtr hwndTab, IntPtr hwndMDI);
+            //void UnregisterTab(IntPtr hwndTab);
+            //void SetTabOrder(IntPtr hwndTab, IntPtr hwndInsertBefore);
+            //void SetTabActive(IntPtr hwndTab, IntPtr hwndMDI, void* tbatFlags);
+            //void SetThumbnailClip(IntPtr hwnd, IntPtr prcClip);
+            //void SetThumbnailTooltip(IntPtr hwnd, string pszTip);
+            //void SetThumbnailButtons(IntPtr hwnd, int cButtons, IntPtr pButtons);
+            //void SetThumbIcon(IntPtr hwnd, IntPtr hIcon, string pszTip);
+        }
+
+        [ComImport]
+        [Guid("56fdf344-fd6d-11d0-958a-006097c9a090")]
+        private class TaskbarInstance { }
+
+        private static ITaskbarList3? _taskbarList;
+
+        private static ITaskbarList3 GetTaskbarList()
+        {
+            if (_taskbarList == null)
+            {
+                _taskbarList = (ITaskbarList3)new TaskbarInstance();
+                _taskbarList.HrInit();
+            }
+            return _taskbarList;
+        }
+
+        public static void SetState(IntPtr hwnd, TaskbarStates state)
+        {
+            try
+            {
+                GetTaskbarList().SetProgressState(hwnd, state);
+            }
+            catch { }
+        }
+
+        public static void SetValue(IntPtr hwnd, ulong current, ulong total)
+        {
+            try
+            {
+                GetTaskbarList().SetProgressValue(hwnd, current, total);
+            }
+            catch { }
         }
     }
 }
