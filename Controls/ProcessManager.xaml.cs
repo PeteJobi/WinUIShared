@@ -5,6 +5,8 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Windows.AppNotifications;
+using Microsoft.Windows.AppNotifications.Builder;
 using WinUIShared.Enums;
 using WinUIShared.Helpers;
 
@@ -179,6 +181,7 @@ namespace WinUIShared.Controls
                 {
                     State = OperationState.BeforeOperation;
                     SetTaskbarProgressState(TaskbarProgress.TaskbarStates.Error);
+                    ShowNotification(true, processFailedMessage);
                     await ErrorAction(processFailedMessage);
                     ResetTaskbarProgressState();
                     await Processor.Cancel();
@@ -187,16 +190,29 @@ namespace WinUIShared.Controls
 
                 State = OperationState.AfterOperation;
                 ProcessProgress.RightTextPrimary = "Done";
+                ShowNotification(false);
                 ResetTaskbarProgressState();
                 return Processor.GetFile();
             }
             catch (Exception ex)
             {
                 SetTaskbarProgressState(TaskbarProgress.TaskbarStates.Error);
+                ShowNotification(true, ex.Message);
                 await ErrorAction(ex.Message);
                 ResetTaskbarProgressState();
                 State = OperationState.BeforeOperation;
                 return null;
+            }
+
+            void ShowNotification(bool isError, string? errorMessage = null)
+            {
+                if (!_displayingTaskbarProgress) return;
+                var notification = new AppNotificationBuilder()
+                    .AddText(isError ? "Process failed" : "Process completed")
+                    .AddText(isError ? errorMessage : null)
+                    .BuildNotification();
+
+                AppNotificationManager.Default.Show(notification);
             }
         }
 
